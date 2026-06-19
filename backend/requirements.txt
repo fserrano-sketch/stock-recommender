@@ -16,6 +16,7 @@ anthropic==0.28.0
 resend==2.0.0
 python-jose[cryptography]==3.3.0
 passlib[bcrypt]==1.7.4
+bcrypt==4.0.1
 python-multipart==0.0.9
 pydantic[email]==2.7.1
 fredapi==0.5.2
