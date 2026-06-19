@@ -1,6 +1,7 @@
 import yfinance as yf
 import httpx
 import os
+import requests
 from datetime import datetime, timedelta
 from fredapi import Fred
 import pandas as pd
@@ -9,10 +10,17 @@ import pandas as pd
 RAPIDAPI_KEY = os.getenv("RAPIDAPI_KEY", "")
 FRED_API_KEY = os.getenv("FRED_API_KEY", "")
 
+def _yf_session():
+    s = requests.Session()
+    s.headers.update({
+        "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/125.0.0.0 Safari/537.36"
+    })
+    return s
+
 
 def get_stock_data(ticker: str) -> dict:
     """Fetch comprehensive stock data from yfinance."""
-    stock = yf.Ticker(ticker)
+    stock = yf.Ticker(ticker, session=_yf_session())
     info = stock.info
 
     hist_1y = stock.history(period="1y")
@@ -106,7 +114,7 @@ def get_news(ticker: str) -> list[dict]:
 
 
 def _get_yfinance_news(ticker: str) -> list[dict]:
-    stock = yf.Ticker(ticker)
+    stock = yf.Ticker(ticker, session=_yf_session())
     news = stock.news or []
     return [
         {
@@ -169,7 +177,7 @@ def get_sector_performance(sector: str) -> dict:
         return {}
 
     try:
-        stock = yf.Ticker(etf)
+        stock = yf.Ticker(etf, session=_yf_session())
         hist = stock.history(period="3mo")
         if hist.empty:
             return {}
@@ -187,7 +195,7 @@ def get_sector_performance(sector: str) -> dict:
 
 def get_historical_prices(ticker: str, period: str = "1y") -> list[dict]:
     """Return OHLCV data for charts."""
-    stock = yf.Ticker(ticker)
+    stock = yf.Ticker(ticker, session=_yf_session())
     hist = stock.history(period=period)
     if hist.empty:
         return []
