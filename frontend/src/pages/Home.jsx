@@ -1,8 +1,9 @@
 import { useState, useEffect, useCallback } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { Search, Zap, Filter, TrendingUp, TrendingDown, Minus } from 'lucide-react'
+import { Zap, Filter, TrendingUp, TrendingDown, Minus } from 'lucide-react'
 import api from '../lib/api'
 import RecommendationCard from '../components/RecommendationCard'
+import TickerInput from '../components/TickerInput'
 
 const SECTORS = ['Todas', 'Technology', 'Healthcare', 'Financials', 'Energy', 'Consumer Discretionary', 'Industrials', 'Communication Services']
 const PERIODS = [{ value: 'today', label: 'Hoy' }, { value: '7d', label: '7 días' }, { value: 'all', label: 'Todo' }]
@@ -69,16 +70,13 @@ export default function Home() {
         </div>
 
         <form onSubmit={handleAnalyze} className="flex gap-3 max-w-xl mx-auto">
-          <div className="relative flex-1">
-            <Search size={18} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-500" />
-            <input
-              className="input w-full pl-10 text-lg uppercase font-mono tracking-wider"
-              placeholder="AAPL, TSLA, MSFT..."
-              value={ticker}
-              onChange={e => setTicker(e.target.value.toUpperCase())}
-              maxLength={10}
-            />
-          </div>
+          <TickerInput
+            value={ticker}
+            onChange={setTicker}
+            onSelect={t => { setTicker(t) }}
+            placeholder="AAPL, TSLA, MSFT..."
+            className="text-lg"
+          />
           <button type="submit" disabled={loading || !ticker.trim()} className="btn-primary flex items-center gap-2 whitespace-nowrap">
             {loading ? (
               <span className="flex items-center gap-2">

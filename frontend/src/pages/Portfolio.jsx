@@ -2,11 +2,12 @@ import { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
 import {
   ScatterChart, Scatter, XAxis, YAxis, Tooltip, ResponsiveContainer,
-  LineChart, Line, CartesianGrid, Legend
+  LineChart, Line, CartesianGrid, Legend, BarChart, Bar, Cell
 } from 'recharts'
-import { PieChart, Plus, X, Zap, ChevronDown, ChevronUp, Save } from 'lucide-react'
+import { PieChart, Plus, X, Zap, ChevronDown, ChevronUp, Save, TrendingUp, TrendingDown, RefreshCw, Trash2 } from 'lucide-react'
 import api from '../lib/api'
 import { isLoggedIn } from '../lib/auth'
+import TickerInput from '../components/TickerInput'
 
 const METHOD_LABELS = { markowitz: 'Mínima Varianza', sharpe: 'Máx Sharpe', correlation: 'Correlación' }
 const METHOD_COLORS = { markowitz: '#38bdf8', sharpe: '#22c55e', blended: '#a78bfa' }
@@ -77,6 +78,8 @@ export default function Portfolio() {
   const [activeTab, setActiveTab] = useState('markowitz')
   const [showCorr, setShowCorr] = useState(false)
   const [saving, setSaving] = useState(false)
+  const [trackingData, setTrackingData] = useState({})
+  const [trackingLoading, setTrackingLoading] = useState({})
 
   useEffect(() => {
     if (!isLoggedIn()) { navigate('/login'); return }
@@ -114,6 +117,42 @@ export default function Portfolio() {
     } finally {
       setLoading(false)
     }
+  }
+
+  const loadTracking = async (portfolio) => {
+    const id = portfolio.id
+    setTrackingLoading(prev => ({ ...prev, [id]: true }))
+    try {
+      const tickers = portfolio.tickers || []
+      const weights = portfolio.optimized_weights || {}
+      // Fetch latest analysis for each ticker
+      const results = await Promise.all(
+        tickers.map(t => api.get(`/analysis/${t}/latest`).then(r => r.data).catch(() => null))
+      )
+      const positions = tickers.map((t, i) => {
+        const analysis = results[i]
+        const weight = weights[t] || (1 / tickers.length)
+        return {
+          ticker: t,
+          weight,
+          price: analysis?.price || 0,
+          change: analysis?.price_change_pct || 0,
+          recommendation: analysis?.recommendation || '—',
+          score: analysis?.score || 0,
+        }
+      }).filter(p => p.price > 0)
+
+      const portfolioChange = positions.reduce((sum, p) => sum + p.weight * p.change, 0)
+      setTrackingData(prev => ({ ...prev, [id]: { positions, portfolioChange } }))
+    } catch { /* ignore */ }
+    finally { setTrackingLoading(prev => ({ ...prev, [id]: false })) }
+  }
+
+  const deletePortfolio = async (id) => {
+    try {
+      await api.delete(`/portfolio/${id}`)
+      setSavedPortfolios(prev => prev.filter(p => p.id !== id))
+    } catch { /* ignore */ }
   }
 
   const handleSave = async () => {
@@ -161,12 +200,12 @@ export default function Portfolio() {
       {/* Ticker input */}
       <div className="card space-y-4">
         <form onSubmit={addTicker} className="flex gap-2">
-          <input
-            className="input flex-1 uppercase font-mono"
-            placeholder="Añadir ticker (ej: NVDA)"
+          <TickerInput
             value={tickerInput}
-            onChange={e => setTickerInput(e.target.value.toUpperCase())}
-            maxLength={10}
+            onChange={setTickerInput}
+            onSelect={t => setTickerInput(t)}
+            placeholder="Añadir ticker (ej: NVDA)"
+            showIcon={false}
           />
           <button type="submit" disabled={!tickerInput.trim() || tickers.length >= 20} className="btn-primary flex items-center gap-1.5">
             <Plus size={16} /> Añadir
@@ -399,19 +438,98 @@ export default function Portfolio() {
 
       {/* Saved portfolios */}
       {savedPortfolios.length > 0 && (
-        <div className="card">
-          <h2 className="font-semibold text-slate-300 mb-3">Portafolios guardados</h2>
-          <div className="space-y-2">
-            {savedPortfolios.map(p => (
-              <div key={p.id} className="flex items-center justify-between py-2 border-b border-slate-700/40 last:border-0">
-                <div>
-                  <span className="text-slate-200 font-medium">{p.name}</span>
-                  <span className="text-slate-500 text-sm ml-2">{p.tickers?.join(', ')}</span>
+        <div className="space-y-4">
+          <h2 className="text-lg font-semibold text-slate-200">Portafolios guardados</h2>
+          {savedPortfolios.map(p => {
+            const tracking = trackingData[p.id]
+            const isLoadingTracking = trackingLoading[p.id]
+            return (
+              <div key={p.id} className="card space-y-3">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <span className="text-slate-200 font-semibold">{p.name}</span>
+                    <span className="text-slate-500 text-xs ml-2">{p.created_at?.slice(0, 10)}</span>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <button
+                      onClick={() => loadTracking(p)}
+                      disabled={isLoadingTracking}
+                      className="flex items-center gap-1.5 text-xs text-brand border border-brand/30 px-3 py-1.5 rounded-lg hover:bg-brand/10 transition-all"
+                    >
+                      <RefreshCw size={12} className={isLoadingTracking ? 'animate-spin' : ''} />
+                      {tracking ? 'Actualizar' : 'Ver rendimiento'}
+                    </button>
+                    <button onClick={() => deletePortfolio(p.id)} className="p-1.5 text-slate-600 hover:text-red-400 transition-colors">
+                      <Trash2 size={14} />
+                    </button>
+                  </div>
                 </div>
-                <span className="text-xs text-slate-600">{p.created_at?.slice(0, 10)}</span>
+
+                <div className="flex flex-wrap gap-1.5">
+                  {(p.tickers || []).map(t => (
+                    <span key={t} className="font-mono text-xs bg-navy-700 border border-slate-700 px-2 py-1 rounded-lg text-slate-300">{t}</span>
+                  ))}
+                </div>
+
+                {isLoadingTracking && (
+                  <div className="text-center py-4 text-slate-500 text-sm animate-pulse">Cargando precios actuales...</div>
+                )}
+
+                {tracking && !isLoadingTracking && (
+                  <div className="space-y-3 pt-2 border-t border-slate-700/40">
+                    {/* Portfolio daily return */}
+                    <div className="flex items-center gap-2">
+                      <span className="text-sm text-slate-400">Rendimiento hoy (ponderado):</span>
+                      <span className={`font-bold text-lg ${tracking.portfolioChange >= 0 ? 'text-emerald-400' : 'text-red-400'}`}>
+                        {tracking.portfolioChange >= 0 ? '+' : ''}{tracking.portfolioChange.toFixed(2)}%
+                      </span>
+                      {tracking.portfolioChange >= 0
+                        ? <TrendingUp size={18} className="text-emerald-400" />
+                        : <TrendingDown size={18} className="text-red-400" />
+                      }
+                    </div>
+
+                    {/* Position breakdown */}
+                    <div className="space-y-2">
+                      {tracking.positions.map(pos => (
+                        <div key={pos.ticker} className="flex items-center gap-3 text-sm">
+                          <span
+                            className="font-mono font-bold w-14 cursor-pointer hover:text-brand transition-colors"
+                            onClick={() => navigate(`/analysis/${pos.ticker}`)}
+                          >{pos.ticker}</span>
+                          <div className="flex-1 bg-navy-700 rounded-full h-1.5">
+                            <div className="h-full rounded-full bg-brand" style={{ width: `${pos.weight * 100}%` }} />
+                          </div>
+                          <span className="text-slate-500 w-10 text-right text-xs">{(pos.weight * 100).toFixed(0)}%</span>
+                          <span className="text-slate-300 w-20 text-right">${pos.price.toFixed(2)}</span>
+                          <span className={`w-16 text-right font-medium ${pos.change >= 0 ? 'text-emerald-400' : 'text-red-400'}`}>
+                            {pos.change >= 0 ? '+' : ''}{pos.change.toFixed(2)}%
+                          </span>
+                        </div>
+                      ))}
+                    </div>
+
+                    {/* Bar chart */}
+                    <ResponsiveContainer width="100%" height={120}>
+                      <BarChart data={tracking.positions} margin={{ top: 5, right: 5, bottom: 5, left: 5 }}>
+                        <XAxis dataKey="ticker" tick={{ fill: '#94a3b8', fontSize: 11 }} />
+                        <YAxis tick={{ fill: '#64748b', fontSize: 10 }} tickFormatter={v => `${v.toFixed(1)}%`} />
+                        <Tooltip
+                          contentStyle={{ background: '#1e293b', border: '1px solid #334155', borderRadius: 8, fontSize: 12 }}
+                          formatter={v => [`${v.toFixed(2)}%`, 'Cambio hoy']}
+                        />
+                        <Bar dataKey="change" radius={[4, 4, 0, 0]}>
+                          {tracking.positions.map((pos, i) => (
+                            <Cell key={i} fill={pos.change >= 0 ? '#34d399' : '#f87171'} />
+                          ))}
+                        </Bar>
+                      </BarChart>
+                    </ResponsiveContainer>
+                  </div>
+                )}
               </div>
-            ))}
-          </div>
+            )
+          })}
         </div>
       )}
     </div>

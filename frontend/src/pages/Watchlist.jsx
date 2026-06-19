@@ -4,6 +4,7 @@ import { Star, Plus, Trash2, RefreshCw, Bell } from 'lucide-react'
 import api from '../lib/api'
 import { isLoggedIn } from '../lib/auth'
 import { ScoreBadge } from '../components/ScoreBadge'
+import TickerInput from '../components/TickerInput'
 
 export default function Watchlist() {
   const navigate = useNavigate()
@@ -86,12 +87,12 @@ export default function Watchlist() {
 
       {/* Add ticker */}
       <form onSubmit={addTicker} className="flex gap-2">
-        <input
-          className="input flex-1 uppercase font-mono"
-          placeholder="Añadir ticker (ej: GOOGL)"
+        <TickerInput
           value={newTicker}
-          onChange={e => setNewTicker(e.target.value.toUpperCase())}
-          maxLength={10}
+          onChange={setNewTicker}
+          onSelect={t => { setNewTicker(t) }}
+          placeholder="Añadir ticker (ej: GOOGL)"
+          showIcon={false}
         />
         <button type="submit" disabled={adding || !newTicker.trim()} className="btn-primary flex items-center gap-1.5">
           <Plus size={16} />
