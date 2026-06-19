@@ -4,7 +4,7 @@ import {
   ScatterChart, Scatter, XAxis, YAxis, Tooltip, ResponsiveContainer,
   LineChart, Line, CartesianGrid, Legend, BarChart, Bar, Cell
 } from 'recharts'
-import { PieChart, Plus, X, Zap, ChevronDown, ChevronUp, Save, TrendingUp, TrendingDown, RefreshCw, Trash2, ImageDown, Copy, Check, Upload, FileSpreadsheet, Clipboard } from 'lucide-react'
+import { PieChart as PieChartIcon, Plus, X, Zap, ChevronDown, ChevronUp, Save, TrendingUp, TrendingDown, RefreshCw, Trash2, ImageDown, Copy, Check, Upload, FileSpreadsheet, Clipboard } from 'lucide-react'
 import api from '../lib/api'
 import { isLoggedIn } from '../lib/auth'
 import TickerInput from '../components/TickerInput'
@@ -270,7 +270,7 @@ export default function Portfolio() {
   return (
     <div className="sm:ml-32 space-y-5">
       <h1 className="text-2xl font-bold flex items-center gap-2">
-        <PieChart size={22} className="text-brand" />
+        <PieChartIcon size={22} className="text-brand" />
         Análisis de Portafolio
       </h1>
 
