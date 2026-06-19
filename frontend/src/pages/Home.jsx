@@ -53,7 +53,6 @@ export default function Home() {
     }
   }
 
-  // Stats from feed
   const buys = feed.filter(f => f.recommendation === 'COMPRAR').length
   const sells = feed.filter(f => f.recommendation === 'VENDER').length
   const holds = feed.filter(f => f.recommendation === 'MANTENER').length
@@ -61,31 +60,51 @@ export default function Home() {
   return (
     <div className="space-y-6 sm:ml-32">
       {/* Hero search */}
-      <div className="card bg-gradient-to-br from-navy-800 to-navy-900 border-brand/20">
-        <div className="text-center mb-6">
-          <h1 className="text-3xl font-bold text-slate-100 mb-2">
-            Análisis de acciones con <span className="text-brand">IA</span>
+      <div className="relative overflow-hidden rounded-3xl p-8 border border-white/[0.08]"
+        style={{
+          background: 'linear-gradient(135deg, rgba(56,189,248,0.08) 0%, rgba(167,139,250,0.06) 50%, rgba(52,211,153,0.04) 100%)',
+          boxShadow: '0 0 0 1px rgba(56,189,248,0.1), 0 20px 60px rgba(0,0,0,0.4)'
+        }}>
+        {/* Decorative orbs */}
+        <div className="absolute -top-20 -right-20 w-60 h-60 rounded-full blur-3xl pointer-events-none"
+          style={{ background: 'radial-gradient(circle, rgba(56,189,248,0.15) 0%, transparent 70%)' }} />
+        <div className="absolute -bottom-16 -left-16 w-48 h-48 rounded-full blur-3xl pointer-events-none"
+          style={{ background: 'radial-gradient(circle, rgba(167,139,250,0.12) 0%, transparent 70%)' }} />
+
+        <div className="relative text-center mb-7">
+          <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full text-xs font-medium mb-4 border border-brand/20"
+            style={{ background: 'rgba(56,189,248,0.08)', color: '#38bdf8' }}>
+            <Zap size={11} />
+            Análisis con IA en segundos
+          </div>
+          <h1 className="text-4xl font-black text-slate-100 mb-3 leading-tight tracking-tight">
+            Invierte con{' '}
+            <span style={{ background: 'linear-gradient(135deg, #38bdf8 0%, #a78bfa 100%)', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent' }}>
+              inteligencia
+            </span>
           </h1>
-          <p className="text-slate-400">Ingresa cualquier ticker y obtén recomendaciones fundamentadas en segundos</p>
+          <p className="text-slate-400 max-w-md mx-auto text-sm leading-relaxed">
+            Análisis fundamentado en datos reales de mercado, indicadores técnicos y razonamiento IA
+          </p>
         </div>
 
-        <form onSubmit={handleAnalyze} className="flex gap-3 max-w-xl mx-auto">
+        <form onSubmit={handleAnalyze} className="flex gap-3 max-w-lg mx-auto relative">
           <TickerInput
             value={ticker}
             onChange={setTicker}
-            onSelect={t => { setTicker(t) }}
+            onSelect={t => setTicker(t)}
             placeholder="AAPL, TSLA, MSFT..."
-            className="text-lg"
+            className="text-base"
           />
           <button type="submit" disabled={loading || !ticker.trim()} className="btn-primary flex items-center gap-2 whitespace-nowrap">
             {loading ? (
-              <span className="flex items-center gap-2">
-                <span className="w-4 h-4 border-2 border-navy-900 border-t-transparent rounded-full animate-spin" />
+              <>
+                <span className="w-4 h-4 border-2 border-navy-900/60 border-t-transparent rounded-full animate-spin" />
                 Analizando...
-              </span>
+              </>
             ) : (
               <>
-                <Zap size={16} />
+                <Zap size={15} />
                 Analizar
               </>
             )}
@@ -93,32 +112,28 @@ export default function Home() {
         </form>
 
         {error && <p className="text-red-400 text-sm text-center mt-3">{error}</p>}
-
         {loading && (
-          <div className="text-center mt-4 text-slate-400 text-sm animate-pulse">
-            Recopilando datos de mercado y generando análisis con IA...
-          </div>
+          <p className="text-center mt-4 text-slate-500 text-xs animate-pulse">
+            Recopilando datos y generando análisis con IA...
+          </p>
         )}
       </div>
 
       {/* Market sentiment strip */}
       {feed.length > 0 && (
         <div className="grid grid-cols-3 gap-3">
-          <div className="card text-center">
-            <TrendingUp size={20} className="text-emerald-400 mx-auto mb-1" />
-            <div className="text-2xl font-bold text-emerald-400">{buys}</div>
-            <div className="text-xs text-slate-500">Comprar</div>
-          </div>
-          <div className="card text-center">
-            <Minus size={20} className="text-amber-400 mx-auto mb-1" />
-            <div className="text-2xl font-bold text-amber-400">{holds}</div>
-            <div className="text-xs text-slate-500">Mantener</div>
-          </div>
-          <div className="card text-center">
-            <TrendingDown size={20} className="text-red-400 mx-auto mb-1" />
-            <div className="text-2xl font-bold text-red-400">{sells}</div>
-            <div className="text-xs text-slate-500">Vender</div>
-          </div>
+          {[
+            { label: 'Comprar', count: buys, color: '#34d399', icon: TrendingUp, bg: 'rgba(52,211,153,0.08)', border: 'rgba(52,211,153,0.15)' },
+            { label: 'Mantener', count: holds, color: '#fbbf24', icon: Minus, bg: 'rgba(251,191,36,0.08)', border: 'rgba(251,191,36,0.15)' },
+            { label: 'Vender', count: sells, color: '#f87171', icon: TrendingDown, bg: 'rgba(248,113,113,0.08)', border: 'rgba(248,113,113,0.15)' },
+          ].map(({ label, count, color, icon: Icon, bg, border }) => (
+            <div key={label} className="rounded-2xl p-4 text-center border transition-all"
+              style={{ background: bg, borderColor: border }}>
+              <Icon size={18} className="mx-auto mb-2" style={{ color }} />
+              <div className="text-2xl font-black" style={{ color }}>{count}</div>
+              <div className="text-xs text-slate-500 mt-0.5">{label}</div>
+            </div>
+          ))}
         </div>
       )}
 
@@ -126,58 +141,58 @@ export default function Home() {
       <div>
         {/* Filters */}
         <div className="flex flex-wrap items-center gap-2 mb-4">
-          <Filter size={16} className="text-slate-500" />
-
-          {/* Period */}
-          <div className="flex bg-navy-800 border border-slate-700/40 rounded-xl p-0.5 gap-0.5">
+          <Filter size={14} className="text-slate-600" />
+          <div className="flex rounded-xl p-0.5 gap-0.5 border border-white/[0.06]"
+            style={{ background: 'rgba(255,255,255,0.02)' }}>
             {PERIODS.map(p => (
               <button
                 key={p.value}
                 onClick={() => setPeriod(p.value)}
-                className={`px-3 py-1.5 rounded-lg text-xs font-medium transition-all ${period === p.value ? 'bg-brand text-navy-900' : 'text-slate-400 hover:text-slate-200'}`}
+                className={`px-3 py-1.5 rounded-lg text-xs font-medium transition-all duration-200 ${
+                  period === p.value
+                    ? 'text-navy-900 font-semibold'
+                    : 'text-slate-500 hover:text-slate-300'
+                }`}
+                style={period === p.value ? { background: 'linear-gradient(135deg, #38bdf8, #0284c7)' } : {}}
               >
                 {p.label}
               </button>
             ))}
           </div>
 
-          {/* Recommendation filter */}
-          <select
-            value={rec}
-            onChange={e => setRec(e.target.value)}
-            className="input text-sm py-1.5 pr-8"
-          >
+          <select value={rec} onChange={e => setRec(e.target.value)} className="input text-xs py-1.5">
             {RECS.map(r => <option key={r.value} value={r.value}>{r.label}</option>)}
           </select>
 
-          {/* Sector filter */}
           <select
             value={sector}
             onChange={e => setSector(e.target.value === 'Todas' ? '' : e.target.value)}
-            className="input text-sm py-1.5 pr-8"
+            className="input text-xs py-1.5"
           >
             {SECTORS.map(s => <option key={s} value={s}>{s}</option>)}
           </select>
         </div>
 
-        <h2 className="text-lg font-semibold text-slate-200 mb-3">
+        <h2 className="text-sm font-semibold text-slate-400 uppercase tracking-widest mb-3">
           Recomendaciones recientes
         </h2>
 
         {feedLoading ? (
           <div className="space-y-3">
             {[...Array(5)].map((_, i) => (
-              <div key={i} className="card h-20 animate-pulse bg-navy-700/50" />
+              <div key={i} className="h-20 rounded-2xl animate-pulse border border-white/[0.04]"
+                style={{ background: 'rgba(255,255,255,0.02)', animationDelay: `${i * 0.1}s` }} />
             ))}
           </div>
         ) : feed.length === 0 ? (
-          <div className="card text-center py-12 text-slate-500">
-            <Search size={40} className="mx-auto mb-3 opacity-30" />
-            <p>No hay análisis para los filtros seleccionados.</p>
-            <p className="text-sm mt-1">Usa el buscador para analizar un ticker.</p>
+          <div className="text-center py-16 text-slate-600 rounded-2xl border border-white/[0.04]"
+            style={{ background: 'rgba(255,255,255,0.01)' }}>
+            <Search size={36} className="mx-auto mb-3 opacity-20" />
+            <p className="text-sm">No hay análisis para los filtros seleccionados.</p>
+            <p className="text-xs mt-1 opacity-60">Usa el buscador para analizar un ticker.</p>
           </div>
         ) : (
-          <div className="space-y-3">
+          <div className="space-y-2">
             {feed.map(a => <RecommendationCard key={a.id} analysis={a} />)}
           </div>
         )}

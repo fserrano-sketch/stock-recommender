@@ -20,21 +20,45 @@ export default function Layout({ children }) {
   }
 
   return (
-    <div className="min-h-screen flex flex-col">
+    <div className="min-h-screen flex flex-col relative">
+      {/* Ambient background */}
+      <div className="fixed inset-0 pointer-events-none" aria-hidden>
+        <div className="absolute inset-0 grid-pattern opacity-50" />
+        <div className="absolute top-0 left-1/4 w-96 h-96 rounded-full blur-3xl"
+          style={{ background: 'radial-gradient(circle, rgba(56,189,248,0.06) 0%, transparent 70%)' }} />
+        <div className="absolute bottom-1/4 right-1/4 w-80 h-80 rounded-full blur-3xl"
+          style={{ background: 'radial-gradient(circle, rgba(167,139,250,0.05) 0%, transparent 70%)' }} />
+        <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[600px] h-[600px] rounded-full blur-3xl"
+          style={{ background: 'radial-gradient(circle, rgba(52,211,153,0.03) 0%, transparent 70%)' }} />
+      </div>
+
       {/* Top bar */}
-      <header className="sticky top-0 z-50 bg-navy-900/90 backdrop-blur-md border-b border-slate-700/40">
+      <header className="sticky top-0 z-50 border-b border-white/[0.06]"
+        style={{ background: 'rgba(6, 13, 26, 0.85)', backdropFilter: 'blur(20px)' }}>
         <div className="max-w-5xl mx-auto px-4 h-14 flex items-center justify-between">
-          <div className="flex items-center gap-2 cursor-pointer" onClick={() => navigate('/')}>
-            <TrendingUp size={22} className="text-brand" />
-            <span className="font-bold text-lg text-slate-100">StockRec <span className="text-brand">AI</span></span>
+          <div className="flex items-center gap-2.5 cursor-pointer" onClick={() => navigate('/')}>
+            <div className="w-8 h-8 rounded-lg flex items-center justify-center"
+              style={{ background: 'linear-gradient(135deg, #38bdf8, #0284c7)', boxShadow: '0 0 16px rgba(56,189,248,0.4)' }}>
+              <TrendingUp size={16} className="text-white" />
+            </div>
+            <span className="font-bold text-base tracking-tight">
+              <span className="text-slate-100">StockRec</span>
+              <span className="ml-1" style={{ background: 'linear-gradient(135deg, #38bdf8, #a78bfa)', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent' }}>AI</span>
+            </span>
           </div>
 
-          <div className="flex items-center gap-1">
+          <div className="flex items-center gap-2">
             {isLoggedIn() ? (
               <>
-                <span className="text-slate-400 text-sm hidden sm:block mr-2">{user?.name || user?.email}</span>
+                <div className="hidden sm:flex items-center gap-2 mr-2">
+                  <div className="w-7 h-7 rounded-lg flex items-center justify-center text-xs font-bold text-white"
+                    style={{ background: 'linear-gradient(135deg, #38bdf8, #a78bfa)' }}>
+                    {(user?.name || user?.email || '?')[0].toUpperCase()}
+                  </div>
+                  <span className="text-slate-400 text-sm">{user?.name || user?.email}</span>
+                </div>
                 <button onClick={handleLogout} className="btn-ghost p-2 rounded-xl">
-                  <LogOut size={16} />
+                  <LogOut size={15} />
                 </button>
               </>
             ) : (
@@ -44,15 +68,17 @@ export default function Layout({ children }) {
             )}
           </div>
         </div>
+        <div className="glow-line" />
       </header>
 
       {/* Main content */}
-      <main className="flex-1 max-w-5xl mx-auto w-full px-4 py-6">
+      <main className="flex-1 max-w-5xl mx-auto w-full px-4 py-6 relative z-10">
         {children}
       </main>
 
       {/* Bottom nav (mobile) */}
-      <nav className="sticky bottom-0 bg-navy-900/95 backdrop-blur-md border-t border-slate-700/40 sm:hidden">
+      <nav className="sticky bottom-0 border-t border-white/[0.06] sm:hidden z-50"
+        style={{ background: 'rgba(6, 13, 26, 0.95)', backdropFilter: 'blur(20px)' }}>
         <div className="flex">
           {navItems.map(({ to, icon: Icon, label }) => (
             <NavLink
@@ -60,13 +86,19 @@ export default function Layout({ children }) {
               to={to}
               className={({ isActive }) =>
                 clsx(
-                  'flex-1 flex flex-col items-center gap-0.5 py-3 text-xs transition-colors',
-                  isActive ? 'text-brand' : 'text-slate-500 hover:text-slate-300'
+                  'flex-1 flex flex-col items-center gap-0.5 py-3 text-xs transition-all duration-200',
+                  isActive ? 'text-brand' : 'text-slate-600 hover:text-slate-400'
                 )
               }
             >
-              <Icon size={20} />
-              <span>{label}</span>
+              {({ isActive }) => (
+                <>
+                  <div className={clsx('p-1.5 rounded-lg transition-all', isActive && 'bg-brand/10')}>
+                    <Icon size={18} />
+                  </div>
+                  <span>{label}</span>
+                </>
+              )}
             </NavLink>
           ))}
         </div>
@@ -80,14 +112,15 @@ export default function Layout({ children }) {
             to={to}
             className={({ isActive }) =>
               clsx(
-                'flex items-center gap-2.5 px-3 py-2.5 rounded-xl text-sm transition-all',
+                'flex items-center gap-2.5 px-3 py-2.5 rounded-xl text-sm transition-all duration-200',
                 isActive
-                  ? 'bg-brand/20 text-brand border border-brand/30'
-                  : 'text-slate-500 hover:text-slate-300 hover:bg-navy-800'
+                  ? 'text-brand border border-brand/20'
+                  : 'text-slate-600 hover:text-slate-300 hover:bg-white/[0.04]'
               )
             }
+            style={({ isActive }) => isActive ? { background: 'rgba(56,189,248,0.08)' } : {}}
           >
-            <Icon size={18} />
+            <Icon size={17} />
             <span>{label}</span>
           </NavLink>
         ))}
