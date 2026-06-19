@@ -1,10 +1,10 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import { useNavigate } from 'react-router-dom'
 import {
   ScatterChart, Scatter, XAxis, YAxis, Tooltip, ResponsiveContainer,
   LineChart, Line, CartesianGrid, Legend, BarChart, Bar, Cell
 } from 'recharts'
-import { PieChart, Plus, X, Zap, ChevronDown, ChevronUp, Save, TrendingUp, TrendingDown, RefreshCw, Trash2 } from 'lucide-react'
+import { PieChart, Plus, X, Zap, ChevronDown, ChevronUp, Save, TrendingUp, TrendingDown, RefreshCw, Trash2, ImageDown } from 'lucide-react'
 import api from '../lib/api'
 import { isLoggedIn } from '../lib/auth'
 import TickerInput from '../components/TickerInput'
@@ -80,6 +80,8 @@ export default function Portfolio() {
   const [saving, setSaving] = useState(false)
   const [trackingData, setTrackingData] = useState({})
   const [trackingLoading, setTrackingLoading] = useState({})
+  const [exporting, setExporting] = useState(false)
+  const resultRef = useRef(null)
 
   useEffect(() => {
     if (!isLoggedIn()) { navigate('/login'); return }
@@ -153,6 +155,24 @@ export default function Portfolio() {
       await api.delete(`/portfolio/${id}`)
       setSavedPortfolios(prev => prev.filter(p => p.id !== id))
     } catch { /* ignore */ }
+  }
+
+  const exportImage = async () => {
+    if (!resultRef.current) return
+    setExporting(true)
+    try {
+      const html2canvas = (await import('html2canvas')).default
+      const canvas = await html2canvas(resultRef.current, {
+        backgroundColor: '#0f172a',
+        scale: 2,
+        useCORS: true,
+      })
+      const link = document.createElement('a')
+      link.download = `portafolio-${tickers.join('-')}-${new Date().toISOString().slice(0, 10)}.png`
+      link.href = canvas.toDataURL('image/png')
+      link.click()
+    } catch { /* ignore */ }
+    finally { setExporting(false) }
   }
 
   const handleSave = async () => {
@@ -270,7 +290,7 @@ export default function Portfolio() {
 
       {/* Results */}
       {result && (
-        <div className="space-y-5 animate-fade-in">
+        <div ref={resultRef} className="space-y-5 animate-fade-in">
           {/* AI Summary */}
           {result.ai_analysis && (
             <div className="card bg-brand/5 border-brand/20 space-y-3">
@@ -428,11 +448,22 @@ export default function Portfolio() {
             )}
           </div>
 
-          {/* Save */}
-          <button onClick={handleSave} disabled={saving} className="btn-primary w-full flex items-center justify-center gap-2">
-            <Save size={16} />
-            {saving ? 'Guardando...' : 'Guardar portafolio'}
-          </button>
+          {/* Save + Export */}
+          <div className="flex gap-3">
+            <button onClick={handleSave} disabled={saving} className="btn-primary flex-1 flex items-center justify-center gap-2">
+              <Save size={16} />
+              {saving ? 'Guardando...' : 'Guardar portafolio'}
+            </button>
+            <button
+              onClick={exportImage}
+              disabled={exporting}
+              className="flex items-center gap-2 px-4 py-2.5 rounded-xl border border-slate-600 text-slate-300 hover:border-brand hover:text-brand transition-all"
+              title="Exportar como imagen"
+            >
+              <ImageDown size={16} />
+              {exporting ? 'Exportando...' : 'Imagen'}
+            </button>
+          </div>
         </div>
       )}
 
