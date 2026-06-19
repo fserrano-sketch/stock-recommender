@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { Zap, Filter, TrendingUp, TrendingDown, Minus } from 'lucide-react'
+import { Search, Zap, Filter, TrendingUp, TrendingDown, Minus } from 'lucide-react'
 import api from '../lib/api'
 import RecommendationCard from '../components/RecommendationCard'
 import TickerInput from '../components/TickerInput'
