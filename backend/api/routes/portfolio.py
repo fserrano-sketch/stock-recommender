@@ -1,10 +1,12 @@
-from fastapi import APIRouter, Depends, HTTPException
+from fastapi import APIRouter, Depends, HTTPException, UploadFile, File
 from sqlalchemy.orm import Session
 from pydantic import BaseModel
 from db.database import get_db
 from db.models import Portfolio, PortfolioAsset, PortfolioOptimization
-from api.auth import get_current_user
+from api.auth import get_current_user, get_optional_user
 from db.models import User
+import base64
+import re
 
 router = APIRouter(prefix="/portfolio", tags=["portfolio"])
 
@@ -140,6 +142,99 @@ def get_portfolio(
         ],
         "created_at": portfolio.created_at.isoformat() if portfolio.created_at else None,
     }
+
+
+@router.post("/extract-from-image")
+async def extract_from_image(
+    file: UploadFile = File(...),
+    current_user: User = Depends(get_optional_user),
+):
+    """Use Claude Vision to extract tickers and weights from a portfolio screenshot or Excel."""
+    content = await file.read()
+    filename = file.filename or ''
+
+    # Handle Excel files
+    if filename.endswith(('.xlsx', '.xls', '.csv')):
+        try:
+            import io
+            tickers = []
+            weights = {}
+
+            if filename.endswith('.csv'):
+                import csv
+                text = content.decode('utf-8', errors='ignore')
+                reader = csv.DictReader(io.StringIO(text))
+                rows = list(reader)
+            else:
+                import openpyxl
+                wb = openpyxl.load_workbook(io.BytesIO(content), data_only=True)
+                ws = wb.active
+                headers = [str(c.value).strip().lower() if c.value else '' for c in next(ws.iter_rows(min_row=1, max_row=1))]
+                rows = []
+                for row in ws.iter_rows(min_row=2, values_only=True):
+                    rows.append({headers[i]: str(v).strip() if v is not None else '' for i, v in enumerate(row)})
+
+            ticker_keys = ['ticker', 'symbol', 'accion', 'simbolo', 'stock', 'code']
+            weight_keys = ['weight', 'peso', 'porcentaje', '%', 'allocation', 'pct', 'participacion']
+
+            ticker_col = next((h for h in (rows[0].keys() if rows else []) if any(k in h.lower() for k in ticker_keys)), None)
+            weight_col = next((h for h in (rows[0].keys() if rows else []) if any(k in h.lower() for k in weight_keys)), None)
+
+            for row in rows:
+                t = (row.get(ticker_col) or '').strip().upper()
+                if t and re.match(r'^[A-Z]{1,5}(-[A-Z])?$', t):
+                    tickers.append(t)
+                    if weight_col:
+                        try:
+                            w = float(str(row.get(weight_col, '')).replace('%', '').strip())
+                            weights[t] = w / 100 if w > 1 else w
+                        except Exception:
+                            pass
+
+            if tickers:
+                return {'tickers': tickers, 'weights': weights if weights else None, 'source': 'excel'}
+        except Exception as e:
+            raise HTTPException(status_code=400, detail=f"Error al leer el archivo: {str(e)}")
+
+    # Handle image files — use Claude Vision
+    import anthropic, os
+    client = anthropic.Anthropic(api_key=os.getenv('ANTHROPIC_API_KEY'))
+    mime = file.content_type or 'image/png'
+    b64 = base64.standard_b64encode(content).decode()
+
+    msg = client.messages.create(
+        model='claude-haiku-4-5-20251001',
+        max_tokens=500,
+        messages=[{
+            'role': 'user',
+            'content': [
+                {
+                    'type': 'image',
+                    'source': {'type': 'base64', 'media_type': mime, 'data': b64},
+                },
+                {
+                    'type': 'text',
+                    'text': (
+                        'Extrae los tickers (símbolos bursátiles) y sus pesos/porcentajes de esta imagen de portafolio. '
+                        'Responde SOLO con JSON en este formato exacto: '
+                        '{"tickers": ["AAPL","MSFT"], "weights": {"AAPL": 0.6, "MSFT": 0.4}} '
+                        'Si no hay pesos, pon weights como null. '
+                        'Los tickers deben ser en mayúsculas. Solo incluye tickers válidos de bolsa (1-5 letras).'
+                    )
+                }
+            ]
+        }]
+    )
+
+    try:
+        import json
+        text = msg.content[0].text.strip()
+        # Extract JSON from response
+        match = re.search(r'\{.*\}', text, re.DOTALL)
+        data = json.loads(match.group()) if match else {}
+        return {**data, 'source': 'image'}
+    except Exception:
+        raise HTTPException(status_code=422, detail='No se pudieron extraer tickers de la imagen')
 
 
 @router.delete("/{portfolio_id}")

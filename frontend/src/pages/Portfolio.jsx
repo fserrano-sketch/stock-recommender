@@ -4,7 +4,7 @@ import {
   ScatterChart, Scatter, XAxis, YAxis, Tooltip, ResponsiveContainer,
   LineChart, Line, CartesianGrid, Legend, BarChart, Bar, Cell
 } from 'recharts'
-import { PieChart, Plus, X, Zap, ChevronDown, ChevronUp, Save, TrendingUp, TrendingDown, RefreshCw, Trash2, ImageDown, Copy, Check } from 'lucide-react'
+import { PieChart, Plus, X, Zap, ChevronDown, ChevronUp, Save, TrendingUp, TrendingDown, RefreshCw, Trash2, ImageDown, Copy, Check, Upload, FileSpreadsheet, ClipboardPaste } from 'lucide-react'
 import api from '../lib/api'
 import { isLoggedIn } from '../lib/auth'
 import TickerInput from '../components/TickerInput'
@@ -82,7 +82,11 @@ export default function Portfolio() {
   const [trackingLoading, setTrackingLoading] = useState({})
   const [exporting, setExporting] = useState(false)
   const [copied, setCopied] = useState(false)
+  const [extracting, setExtracting] = useState(false)
+  const [extractError, setExtractError] = useState('')
+  const [dragOver, setDragOver] = useState(false)
   const resultRef = useRef(null)
+  const fileInputRef = useRef(null)
 
   useEffect(() => {
     if (!isLoggedIn()) { navigate('/login'); return }
@@ -119,6 +123,47 @@ export default function Portfolio() {
       setError(err.response?.data?.detail || 'Error al optimizar el portafolio')
     } finally {
       setLoading(false)
+    }
+  }
+
+  useEffect(() => {
+    const handlePaste = async (e) => {
+      const items = e.clipboardData?.items
+      if (!items) return
+      for (const item of items) {
+        if (item.type.startsWith('image/')) {
+          const file = item.getAsFile()
+          if (file) await extractFromFile(file)
+          break
+        }
+      }
+    }
+    window.addEventListener('paste', handlePaste)
+    return () => window.removeEventListener('paste', handlePaste)
+  }, [])
+
+  const extractFromFile = async (file) => {
+    setExtracting(true)
+    setExtractError('')
+    try {
+      const formData = new FormData()
+      formData.append('file', file)
+      const { data } = await api.post('/portfolio/extract-from-image', formData, {
+        headers: { 'Content-Type': 'multipart/form-data' }
+      })
+      if (data.tickers?.length > 0) {
+        setTickers(data.tickers.slice(0, 20))
+        if (data.weights) {
+          setCurrentWeights(data.weights)
+          setMode('review')
+        }
+      } else {
+        setExtractError('No se encontraron tickers en el archivo.')
+      }
+    } catch {
+      setExtractError('Error al procesar el archivo. Intenta con otra imagen o Excel.')
+    } finally {
+      setExtracting(false)
     }
   }
 
@@ -243,6 +288,56 @@ export default function Portfolio() {
         >
           🔍 Revisar portafolio existente
         </button>
+      </div>
+
+      {/* Import from file / image */}
+      <div
+        className={`border-2 border-dashed rounded-2xl p-5 transition-all text-center ${dragOver ? 'border-brand bg-brand/5' : 'border-slate-700 hover:border-slate-500'}`}
+        onDragOver={e => { e.preventDefault(); setDragOver(true) }}
+        onDragLeave={() => setDragOver(false)}
+        onDrop={e => { e.preventDefault(); setDragOver(false); const f = e.dataTransfer.files[0]; if (f) extractFromFile(f) }}
+      >
+        <input
+          ref={fileInputRef}
+          type="file"
+          className="hidden"
+          accept=".xlsx,.xls,.csv,image/*"
+          onChange={e => { const f = e.target.files?.[0]; if (f) extractFromFile(f) }}
+        />
+        {extracting ? (
+          <div className="flex items-center justify-center gap-2 text-brand animate-pulse">
+            <span className="w-4 h-4 border-2 border-brand border-t-transparent rounded-full animate-spin" />
+            Analizando con IA...
+          </div>
+        ) : (
+          <div className="space-y-3">
+            <p className="text-slate-400 text-sm">Importa tu portafolio desde un archivo o imagen</p>
+            <div className="flex items-center justify-center gap-3 flex-wrap">
+              <button
+                type="button"
+                onClick={() => fileInputRef.current?.click()}
+                className="flex items-center gap-2 px-4 py-2 rounded-xl bg-navy-700 border border-slate-600 text-slate-300 hover:border-brand hover:text-brand transition-all text-sm"
+              >
+                <FileSpreadsheet size={15} />
+                Excel / CSV
+              </button>
+              <button
+                type="button"
+                onClick={() => fileInputRef.current?.click()}
+                className="flex items-center gap-2 px-4 py-2 rounded-xl bg-navy-700 border border-slate-600 text-slate-300 hover:border-brand hover:text-brand transition-all text-sm"
+              >
+                <Upload size={15} />
+                Imagen
+              </button>
+              <span className="flex items-center gap-1.5 text-slate-500 text-sm">
+                <ClipboardPaste size={15} />
+                o pega con Ctrl+V
+              </span>
+            </div>
+            <p className="text-xs text-slate-600">Arrastra un archivo aquí · La IA extrae los tickers automáticamente</p>
+          </div>
+        )}
+        {extractError && <p className="text-red-400 text-xs mt-2">{extractError}</p>}
       </div>
 
       {/* Ticker input */}
