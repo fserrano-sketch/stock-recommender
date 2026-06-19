@@ -5,7 +5,7 @@
     "buildCommand": "npm install && npm run build"
   },
   "deploy": {
-    "startCommand": "npx -y serve -s dist -l $PORT",
+    "startCommand": "npx -y serve -s dist --listen $PORT",
     "restartPolicyType": "ON_FAILURE"
   }
 }
