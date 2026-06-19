@@ -4,7 +4,7 @@ import {
   ScatterChart, Scatter, XAxis, YAxis, Tooltip, ResponsiveContainer,
   LineChart, Line, CartesianGrid, Legend, BarChart, Bar, Cell
 } from 'recharts'
-import { PieChart, Plus, X, Zap, ChevronDown, ChevronUp, Save, TrendingUp, TrendingDown, RefreshCw, Trash2, ImageDown } from 'lucide-react'
+import { PieChart, Plus, X, Zap, ChevronDown, ChevronUp, Save, TrendingUp, TrendingDown, RefreshCw, Trash2, ImageDown, Copy, Check } from 'lucide-react'
 import api from '../lib/api'
 import { isLoggedIn } from '../lib/auth'
 import TickerInput from '../components/TickerInput'
@@ -81,6 +81,7 @@ export default function Portfolio() {
   const [trackingData, setTrackingData] = useState({})
   const [trackingLoading, setTrackingLoading] = useState({})
   const [exporting, setExporting] = useState(false)
+  const [copied, setCopied] = useState(false)
   const resultRef = useRef(null)
 
   useEffect(() => {
@@ -171,6 +172,33 @@ export default function Portfolio() {
       link.download = `portafolio-${tickers.join('-')}-${new Date().toISOString().slice(0, 10)}.png`
       link.href = canvas.toDataURL('image/png')
       link.click()
+    } catch { /* ignore */ }
+    finally { setExporting(false) }
+  }
+
+  const copyToClipboard = async () => {
+    if (!resultRef.current) return
+    setExporting(true)
+    try {
+      const html2canvas = (await import('html2canvas')).default
+      const canvas = await html2canvas(resultRef.current, {
+        backgroundColor: '#0f172a',
+        scale: 2,
+        useCORS: true,
+      })
+      canvas.toBlob(async (blob) => {
+        try {
+          await navigator.clipboard.write([new ClipboardItem({ 'image/png': blob })])
+          setCopied(true)
+          setTimeout(() => setCopied(false), 2500)
+        } catch {
+          // Fallback: download if clipboard not supported
+          const link = document.createElement('a')
+          link.download = `portafolio-${tickers.join('-')}.png`
+          link.href = URL.createObjectURL(blob)
+          link.click()
+        }
+      }, 'image/png')
     } catch { /* ignore */ }
     finally { setExporting(false) }
   }
@@ -458,10 +486,19 @@ export default function Portfolio() {
               onClick={exportImage}
               disabled={exporting}
               className="flex items-center gap-2 px-4 py-2.5 rounded-xl border border-slate-600 text-slate-300 hover:border-brand hover:text-brand transition-all"
-              title="Exportar como imagen"
+              title="Descargar como imagen"
             >
               <ImageDown size={16} />
-              {exporting ? 'Exportando...' : 'Imagen'}
+              Descargar
+            </button>
+            <button
+              onClick={copyToClipboard}
+              disabled={exporting}
+              className={`flex items-center gap-2 px-4 py-2.5 rounded-xl border transition-all ${copied ? 'border-emerald-500 text-emerald-400' : 'border-slate-600 text-slate-300 hover:border-brand hover:text-brand'}`}
+              title="Copiar al portapapeles para pegar en WhatsApp, etc."
+            >
+              {copied ? <Check size={16} /> : <Copy size={16} />}
+              {copied ? '¡Copiado!' : 'Copiar'}
             </button>
           </div>
         </div>
