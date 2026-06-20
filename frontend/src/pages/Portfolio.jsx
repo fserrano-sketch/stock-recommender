@@ -536,7 +536,8 @@ export default function Portfolio() {
         <button
           onClick={handleOptimize}
           disabled={loading || tickers.length < 2}
-          className="w-full flex items-center justify-center gap-2 py-2.5 rounded-xl border border-white/[0.08] text-slate-400 hover:text-slate-200 hover:border-white/[0.15] transition-all text-sm"
+          className="w-full flex items-center justify-center gap-2 py-2.5 rounded-xl border transition-all text-sm font-medium"
+          style={{ background: 'rgba(167,139,250,0.08)', borderColor: 'rgba(167,139,250,0.25)', color: '#a78bfa' }}
         >
           {loading ? (
             <>
