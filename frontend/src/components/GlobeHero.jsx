@@ -105,15 +105,32 @@ export default function GlobeHero() {
       ctx.fillStyle = bg
       ctx.fillRect(0, 0, W(), H())
 
-      // Globe glow
-      const glow = ctx.createRadialGradient(cx, cy, 0, cx, cy, r * 1.3)
-      glow.addColorStop(0, 'rgba(56,189,248,0.06)')
-      glow.addColorStop(0.7, 'rgba(56,100,255,0.04)')
-      glow.addColorStop(1, 'rgba(0,0,0,0)')
+      // Globe outer atmosphere glow (big soft ring)
+      const atmos = ctx.createRadialGradient(cx, cy, r * 0.85, cx, cy, r * 1.5)
+      atmos.addColorStop(0, 'rgba(56,189,248,0.18)')
+      atmos.addColorStop(0.4, 'rgba(56,130,255,0.08)')
+      atmos.addColorStop(1, 'rgba(0,0,0,0)')
       ctx.beginPath()
-      ctx.arc(cx, cy, r * 1.3, 0, Math.PI * 2)
-      ctx.fillStyle = glow
+      ctx.arc(cx, cy, r * 1.5, 0, Math.PI * 2)
+      ctx.fillStyle = atmos
       ctx.fill()
+
+      // Globe inner fill — ocean base color
+      const ocean = ctx.createRadialGradient(cx - r * 0.2, cy - r * 0.2, 0, cx, cy, r)
+      ocean.addColorStop(0, 'rgba(30,80,140,0.55)')
+      ocean.addColorStop(0.6, 'rgba(10,30,70,0.45)')
+      ocean.addColorStop(1, 'rgba(5,15,40,0.3)')
+      ctx.beginPath()
+      ctx.arc(cx, cy, r, 0, Math.PI * 2)
+      ctx.fillStyle = ocean
+      ctx.fill()
+
+      // Globe edge rim
+      ctx.beginPath()
+      ctx.arc(cx, cy, r, 0, Math.PI * 2)
+      ctx.strokeStyle = 'rgba(56,189,248,0.35)'
+      ctx.lineWidth = 1.5
+      ctx.stroke()
 
       // Orbital rings
       for (let i = 0; i < 3; i++) {
@@ -121,16 +138,16 @@ export default function GlobeHero() {
         ctx.save()
         ctx.translate(cx, cy)
         ctx.rotate(tilt)
-        ctx.scale(1, 0.3 + i * 0.1)
+        ctx.scale(1, 0.28 + i * 0.08)
         ctx.beginPath()
-        ctx.arc(0, 0, r * (1.1 + i * 0.12), 0, Math.PI * 2)
-        ctx.strokeStyle = `rgba(56,189,248,${0.08 - i * 0.02})`
-        ctx.lineWidth = 0.8
+        ctx.arc(0, 0, r * (1.12 + i * 0.13), 0, Math.PI * 2)
+        ctx.strokeStyle = `rgba(56,189,248,${0.12 - i * 0.03})`
+        ctx.lineWidth = 1
         ctx.stroke()
         ctx.restore()
       }
 
-      // Dot grid on sphere
+      // Dot grid on sphere (latitude/longitude grid feel)
       const visible = []
       dots.forEach(([dx, dy, dz]) => {
         const rx = dx * Math.cos(rot) - dz * Math.sin(rot)
@@ -138,16 +155,49 @@ export default function GlobeHero() {
         if (rz < 0) return
         const sx = cx + rx * r
         const sy = cy - dy * r
-        const alpha = rz * 0.5 + 0.08
-        const size = rz * 1.2 + 0.4
+        const alpha = rz * 0.7 + 0.15
+        const size = rz * 1.5 + 0.6
         ctx.beginPath()
         ctx.arc(sx, sy, size, 0, Math.PI * 2)
-        ctx.fillStyle = `rgba(150,210,255,${alpha.toFixed(2)})`
+        ctx.fillStyle = `rgba(160,220,255,${alpha.toFixed(2)})`
         ctx.fill()
         visible.push({ sx, sy, rz })
       })
 
-      // Continent lines
+      // Lat/lon grid lines on sphere
+      const gridAlpha = 0.12
+      // Latitude lines
+      for (let lat = -60; lat <= 60; lat += 30) {
+        ctx.beginPath()
+        let started = false
+        for (let lon = -180; lon <= 180; lon += 3) {
+          const xyz = latLonToXYZ(lat, lon, r)
+          const p = project(xyz, rot)
+          if (p.z < 0) { started = false; continue }
+          const sx = cx + p.sx - W()/2, sy = cy + p.sy - H()/2
+          started ? ctx.lineTo(sx, sy) : (ctx.moveTo(sx, sy), started = true)
+        }
+        ctx.strokeStyle = `rgba(100,180,255,${gridAlpha})`
+        ctx.lineWidth = 0.5
+        ctx.stroke()
+      }
+      // Longitude lines
+      for (let lon = -180; lon < 180; lon += 30) {
+        ctx.beginPath()
+        let started = false
+        for (let lat = -90; lat <= 90; lat += 3) {
+          const xyz = latLonToXYZ(lat, lon, r)
+          const p = project(xyz, rot)
+          if (p.z < 0) { started = false; continue }
+          const sx = cx + p.sx - W()/2, sy = cy + p.sy - H()/2
+          started ? ctx.lineTo(sx, sy) : (ctx.moveTo(sx, sy), started = true)
+        }
+        ctx.strokeStyle = `rgba(100,180,255,${gridAlpha})`
+        ctx.lineWidth = 0.5
+        ctx.stroke()
+      }
+
+      // Continent lines — brighter, thicker
       CONTINENTS.forEach(pts => {
         let first = true
         ctx.beginPath()
@@ -158,8 +208,8 @@ export default function GlobeHero() {
           if (first) { ctx.moveTo(cx + p.sx - W()/2, cy + p.sy - H()/2); first = false }
           else ctx.lineTo(cx + p.sx - W()/2, cy + p.sy - H()/2)
         })
-        ctx.strokeStyle = 'rgba(100,200,255,0.25)'
-        ctx.lineWidth = 0.7
+        ctx.strokeStyle = 'rgba(140,220,255,0.65)'
+        ctx.lineWidth = 1.2
         ctx.stroke()
       })
 
