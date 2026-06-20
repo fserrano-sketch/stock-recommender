@@ -359,11 +359,11 @@ export default function Portfolio() {
   }
 
   const STRATEGY_COLORS = {
-    ACCION: { bg: 'rgba(56,189,248,0.1)', border: 'rgba(56,189,248,0.2)', text: '#38bdf8' },
-    PROTECCION: { bg: 'rgba(251,191,36,0.1)', border: 'rgba(251,191,36,0.2)', text: '#fbbf24' },
-    CRECIMIENTO: { bg: 'rgba(52,211,153,0.1)', border: 'rgba(52,211,153,0.2)', text: '#34d399' },
-    DIVIDENDOS: { bg: 'rgba(167,139,250,0.1)', border: 'rgba(167,139,250,0.2)', text: '#a78bfa' },
-    REBALANCEO: { bg: 'rgba(248,113,113,0.1)', border: 'rgba(248,113,113,0.2)', text: '#f87171' },
+    ACCION:     { bg: 'rgba(56,189,248,0.07)', border: 'rgba(56,189,248,0.18)', text: '#38bdf8' },
+    PROTECCION: { bg: 'rgba(251,191,36,0.07)', border: 'rgba(251,191,36,0.18)', text: '#fbbf24' },
+    CRECIMIENTO:{ bg: 'rgba(52,211,153,0.07)', border: 'rgba(52,211,153,0.18)', text: '#34d399' },
+    DIVIDENDOS: { bg: 'rgba(56,189,248,0.07)', border: 'rgba(56,189,248,0.18)', text: '#38bdf8' },
+    REBALANCEO: { bg: 'rgba(251,191,36,0.07)', border: 'rgba(251,191,36,0.18)', text: '#fbbf24' },
   }
   const PRIORITY_DOT = { ALTA: '#f87171', MEDIA: '#fbbf24', BAJA: '#34d399' }
 
@@ -513,44 +513,39 @@ export default function Portfolio() {
           </div>
         )}
 
-        {/* Primary: Strategies */}
-        <button
-          onClick={handleStrategies}
-          disabled={strategiesLoading || tickers.length < 1}
-          className="btn-primary w-full flex items-center justify-center gap-2"
-        >
-          {strategiesLoading ? (
-            <>
-              <span className="w-4 h-4 border-2 border-navy-900/60 border-t-transparent rounded-full animate-spin" />
-              Analizando con IA...
-            </>
-          ) : (
-            <>
-              <Brain size={16} />
-              Ver estrategias con IA
-            </>
-          )}
-        </button>
+        <div className="grid grid-cols-2 gap-3">
+          {/* Strategies */}
+          <button
+            onClick={handleStrategies}
+            disabled={strategiesLoading || tickers.length < 1}
+            className="flex flex-col items-center justify-center gap-2 py-5 rounded-2xl border border-brand/30 transition-all disabled:opacity-40"
+            style={{ background: 'rgba(56,189,248,0.07)' }}
+          >
+            {strategiesLoading ? (
+              <span className="w-5 h-5 border-2 border-brand border-t-transparent rounded-full animate-spin" />
+            ) : (
+              <Brain size={22} className="text-brand" />
+            )}
+            <span className="font-semibold text-slate-100 text-sm">Estrategias IA</span>
+            <span className="text-xs text-slate-500 text-center leading-tight">Recomendaciones<br/>de inversión</span>
+          </button>
 
-        {/* Secondary: Optimize */}
-        <button
-          onClick={handleOptimize}
-          disabled={loading || tickers.length < 2}
-          className="w-full flex items-center justify-center gap-2 py-2.5 rounded-xl border transition-all text-sm font-medium"
-          style={{ background: 'rgba(167,139,250,0.08)', borderColor: 'rgba(167,139,250,0.25)', color: '#a78bfa' }}
-        >
-          {loading ? (
-            <>
-              <span className="w-3.5 h-3.5 border-2 border-slate-400 border-t-transparent rounded-full animate-spin" />
-              Optimizando...
-            </>
-          ) : (
-            <>
-              <Zap size={14} />
-              Optimización matemática
-            </>
-          )}
-        </button>
+          {/* Optimize */}
+          <button
+            onClick={handleOptimize}
+            disabled={loading || tickers.length < 2}
+            className="flex flex-col items-center justify-center gap-2 py-5 rounded-2xl border border-slate-600/50 transition-all disabled:opacity-40 hover:border-slate-500"
+            style={{ background: 'rgba(255,255,255,0.03)' }}
+          >
+            {loading ? (
+              <span className="w-5 h-5 border-2 border-slate-400 border-t-transparent rounded-full animate-spin" />
+            ) : (
+              <Zap size={22} className="text-slate-400" />
+            )}
+            <span className="font-semibold text-slate-100 text-sm">Optimización</span>
+            <span className="text-xs text-slate-500 text-center leading-tight">Matemática<br/>Markowitz / Sharpe</span>
+          </button>
+        </div>
 
         {(error || strategiesError) && <p className="text-red-400 text-sm">{error || strategiesError}</p>}
       </div>

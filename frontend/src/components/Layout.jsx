@@ -43,7 +43,7 @@ export default function Layout({ children }) {
             </div>
             <span className="font-bold text-base tracking-tight">
               <span className="text-slate-100">StockRec</span>
-              <span className="ml-1" style={{ background: 'linear-gradient(135deg, #38bdf8, #a78bfa)', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent' }}>AI</span>
+              <span className="ml-1" style={{ background: 'linear-gradient(135deg, #38bdf8, #38bdf8)', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent' }}>AI</span>
             </span>
           </div>
 
@@ -52,7 +52,7 @@ export default function Layout({ children }) {
               <>
                 <div className="hidden sm:flex items-center gap-2 mr-2">
                   <div className="w-7 h-7 rounded-lg flex items-center justify-center text-xs font-bold text-white"
-                    style={{ background: 'linear-gradient(135deg, #38bdf8, #a78bfa)' }}>
+                    style={{ background: 'linear-gradient(135deg, #38bdf8, #38bdf8)' }}>
                     {(user?.name || user?.email || '?')[0].toUpperCase()}
                   </div>
                   <span className="text-slate-400 text-sm">{user?.name || user?.email}</span>

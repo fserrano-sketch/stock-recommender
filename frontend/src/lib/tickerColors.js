@@ -1,13 +1,13 @@
 const GRADIENTS = [
   'linear-gradient(135deg, #38bdf8, #0284c7)',
-  'linear-gradient(135deg, #a78bfa, #7c3aed)',
+  'linear-gradient(135deg, #0ea5e9, #0369a1)',
   'linear-gradient(135deg, #34d399, #059669)',
   'linear-gradient(135deg, #f472b6, #db2777)',
   'linear-gradient(135deg, #fb923c, #ea580c)',
   'linear-gradient(135deg, #fbbf24, #d97706)',
-  'linear-gradient(135deg, #38bdf8, #a78bfa)',
-  'linear-gradient(135deg, #34d399, #a78bfa)',
-  'linear-gradient(135deg, #f472b6, #fb923c)',
+  'linear-gradient(135deg, #38bdf8, #0284c7)',
+  'linear-gradient(135deg, #34d399, #0ea5e9)',
+  'linear-gradient(135deg, #fbbf24, #fb923c)',
 ]
 
 export function getTickerGradient(ticker) {

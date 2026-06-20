@@ -6,7 +6,7 @@ export default {
       colors: {
         navy: { 950: '#060d1a', 900: '#0f172a', 800: '#1e293b', 700: '#334155' },
         brand: { DEFAULT: '#38bdf8', dark: '#0284c7', glow: '#7dd3fc' },
-        accent: { purple: '#a78bfa', pink: '#f472b6', green: '#34d399', orange: '#fb923c' },
+        accent: { green: '#34d399', orange: '#fb923c', yellow: '#fbbf24' },
       },
       animation: {
         'pulse-slow': 'pulse 3s cubic-bezier(0.4, 0, 0.6, 1) infinite',

@@ -79,7 +79,7 @@ export default function Home() {
           </div>
           <h1 className="text-4xl font-black text-slate-100 mb-3 leading-tight tracking-tight">
             Invierte con{' '}
-            <span style={{ background: 'linear-gradient(135deg, #38bdf8 0%, #a78bfa 100%)', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent' }}>
+            <span style={{ background: 'linear-gradient(135deg, #38bdf8 0%, #38bdf8 100%)', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent' }}>
               inteligencia
             </span>
           </h1>
