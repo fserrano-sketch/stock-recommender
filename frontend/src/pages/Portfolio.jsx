@@ -449,7 +449,7 @@ export default function Portfolio() {
               </button>
               <button
                 type="button"
-                onClick={() => setShowPasteBox(v => !v)}
+                onClick={() => { setShowPasteBox(v => !v); setExtractError('') }}
                 className="flex items-center gap-2 px-4 py-2 rounded-xl bg-navy-700 border border-slate-600 text-slate-300 hover:border-brand hover:text-brand transition-all text-sm"
               >
                 <Clipboard size={15} />
@@ -458,17 +458,32 @@ export default function Portfolio() {
             </div>
 
             {showPasteBox && (
-              <div className="mt-3 space-y-2">
+              <div className="mt-3 space-y-2 text-left">
+                <p className="text-xs text-slate-400">
+                  Pega tu lista — una acción por línea, con o sin porcentaje:
+                </p>
                 <textarea
-                  className="input w-full h-32 text-xs font-mono resize-none"
-                  placeholder={"Pega aquí tu lista de tickers:\nGOOG  15.96%\nNVDA  10.25%\nAMZN  9.71%\n..."}
+                  className="input w-full h-36 text-sm font-mono resize-none"
+                  placeholder={"AAPL\nMSFT  20%\nNVDA  15.5%\nGOOG\nAMZN  9.71%"}
                   value={pasteText}
-                  onChange={e => setPasteText(e.target.value)}
+                  onChange={e => { setPasteText(e.target.value); setExtractError('') }}
                   autoFocus
                 />
-                <button onClick={handlePasteText} className="btn-primary text-sm py-2 px-4">
-                  Importar tickers
-                </button>
+                <div className="flex items-center gap-2">
+                  <button
+                    onClick={handlePasteText}
+                    disabled={!pasteText.trim()}
+                    className="btn-primary text-sm"
+                  >
+                    Importar {pasteText.trim() ? `(${pasteText.trim().split(/\n/).filter(l => l.trim()).length} líneas)` : 'tickers'}
+                  </button>
+                  <button
+                    onClick={() => { setShowPasteBox(false); setPasteText(''); setExtractError('') }}
+                    className="text-xs text-slate-500 hover:text-slate-300 transition-colors"
+                  >
+                    Cancelar
+                  </button>
+                </div>
               </div>
             )}
 
