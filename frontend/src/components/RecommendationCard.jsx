@@ -16,36 +16,44 @@ function timeAgo(isoDate) {
 }
 
 function TickerAvatar({ ticker, size = 44 }) {
+  const [logoLoaded, setLogoLoaded] = useState(false)
   const [logoError, setLogoError] = useState(false)
   const logoUrl = getLogoUrl(ticker)
   const gradient = getTickerGradient(ticker)
   const letters = ticker.slice(0, 2)
 
-  if (logoUrl && !logoError) {
-    return (
-      <div
-        className="shrink-0 rounded-xl overflow-hidden flex items-center justify-center"
-        style={{ width: size, height: size, background: 'rgba(255,255,255,0.07)', border: '1px solid rgba(255,255,255,0.1)' }}
-      >
-        <img
-          src={logoUrl}
-          alt={ticker}
-          className="object-contain"
-          style={{ width: size * 0.72, height: size * 0.72 }}
-          onError={() => setLogoError(true)}
-        />
-      </div>
-    )
-  }
+  // Show gradient fallback while logo loads or if it errors
+  const showLogo = logoUrl && !logoError
 
   return (
-    <div
-      className="shrink-0 rounded-xl flex items-center justify-center font-bold text-white"
-      style={{ width: size, height: size, background: gradient, fontSize: size * 0.32 }}
-    >
-      {letters}
+    <div className="shrink-0 relative" style={{ width: size, height: size }}>
+      {/* Gradient fallback — always rendered underneath */}
+      <div
+        className="absolute inset-0 rounded-xl flex items-center justify-center"
+        style={{ background: gradient }}
+      >
+        <span className="text-white font-bold text-xs tracking-wider">{letters}</span>
+      </div>
+
+      {/* Logo — fades in on top once loaded */}
+      {showLogo && (
+        <div
+          className="absolute inset-0 rounded-xl overflow-hidden flex items-center justify-center transition-opacity duration-300"
+          style={{ background: 'rgba(15,23,42,0.85)', opacity: logoLoaded ? 1 : 0 }}
+        >
+          <img
+            src={logoUrl}
+            alt={ticker}
+            className="object-contain"
+            style={{ width: size * 0.72, height: size * 0.72 }}
+            onLoad={() => setLogoLoaded(true)}
+            onError={() => setLogoError(true)}
+          />
+        </div>
+      )}
     </div>
   )
+
 }
 
 export default function RecommendationCard({ analysis }) {
