@@ -133,11 +133,46 @@ export default function Portfolio() {
     const handlePaste = async (e) => {
       const items = e.clipboardData?.items
       if (!items) return
+
+      // Try image first
       for (const item of items) {
         if (item.type.startsWith('image/')) {
           const file = item.getAsFile()
-          if (file) await extractFromFile(file)
-          break
+          if (file) { await extractFromFile(file); return }
+        }
+      }
+
+      // Try plain text — parse tickers and optional percentages
+      for (const item of items) {
+        if (item.type === 'text/plain') {
+          item.getAsString(text => {
+            const lines = text.split(/[\n\r]+/).map(l => l.trim()).filter(Boolean)
+            const parsed = []
+            const weights = {}
+            for (const line of lines) {
+              // Match: "AAPL 12.5%" or "AAPL\t12.5" or "AAPL 0.125" etc.
+              const m = line.match(/^([A-Z]{1,6}(?:[.\-:][A-Z]{1,2})?)\b.*?([\d]+\.?\d*)%?$/)
+              if (m) {
+                const ticker = m[1].replace(/[.\-:].*/, '') // strip suffix like .B
+                const num = parseFloat(m[2])
+                if (!parsed.includes(ticker)) {
+                  parsed.push(ticker)
+                  if (!isNaN(num) && num > 0) {
+                    weights[ticker] = num > 1 ? num / 100 : num
+                  }
+                }
+              }
+            }
+            if (parsed.length > 0) {
+              setTickers(parsed.slice(0, 20))
+              if (Object.keys(weights).length > 0) {
+                setCurrentWeights(weights)
+                setMode('review')
+              }
+              setExtractError('')
+            }
+          })
+          return
         }
       }
     }
