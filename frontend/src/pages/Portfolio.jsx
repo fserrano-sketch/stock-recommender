@@ -4,7 +4,7 @@ import {
   ScatterChart, Scatter, XAxis, YAxis, Tooltip, ResponsiveContainer,
   LineChart, Line, CartesianGrid, Legend, BarChart, Bar, Cell
 } from 'recharts'
-import { PieChart as PieChartIcon, Plus, X, Zap, ChevronDown, ChevronUp, Save, TrendingUp, TrendingDown, RefreshCw, Trash2, ImageDown, Copy, Check, Upload, FileSpreadsheet, Clipboard, Brain, ShieldAlert, Lightbulb, ArrowUpRight, AlertTriangle } from 'lucide-react'
+import { PieChart as PieChartIcon, Plus, X, Zap, ChevronDown, ChevronUp, Save, TrendingUp, TrendingDown, RefreshCw, Trash2, ImageDown, Copy, Check, Upload, FileSpreadsheet, Clipboard, Brain, ShieldAlert, Lightbulb, ArrowUpRight, AlertTriangle, ClipboardPaste } from 'lucide-react'
 import api from '../lib/api'
 import { isLoggedIn } from '../lib/auth'
 import TickerInput from '../components/TickerInput'
@@ -88,6 +88,8 @@ export default function Portfolio() {
   const [extracting, setExtracting] = useState(false)
   const [extractError, setExtractError] = useState('')
   const [dragOver, setDragOver] = useState(false)
+  const [showPasteBox, setShowPasteBox] = useState(false)
+  const [pasteText, setPasteText] = useState('')
   const resultRef = useRef(null)
   const fileInputRef = useRef(null)
 
@@ -302,6 +304,44 @@ export default function Portfolio() {
     finally { setSaving(false) }
   }
 
+  const parseTextTickers = (text) => {
+    const lines = text.split(/[\n\r]+/).map(l => l.trim()).filter(Boolean)
+    const parsed = []
+    const weights = {}
+    for (const line of lines) {
+      // Skip header lines
+      if (/emisora|ticker|symbol|cartera|acciones|peso|%/i.test(line) && !/\d/.test(line)) continue
+      // Match ticker at start of line, optionally followed by a number
+      const m = line.match(/^([A-Z]{1,6}(?:[.\-][A-Z]{1,2})?)\s*[\t;,]?\s*([\d]+\.?\d*)?/i)
+      if (m) {
+        const ticker = m[1].toUpperCase().replace(/[.\-].*/, '')
+        if (ticker.length < 1 || ticker.length > 6) continue
+        if (!parsed.includes(ticker)) {
+          parsed.push(ticker)
+          if (m[2]) {
+            const num = parseFloat(m[2])
+            if (!isNaN(num) && num > 0) weights[ticker] = num > 1 ? num / 100 : num
+          }
+        }
+      }
+    }
+    return { tickers: parsed.slice(0, 20), weights }
+  }
+
+  const handlePasteText = () => {
+    if (!pasteText.trim()) return
+    const { tickers: t, weights: w } = parseTextTickers(pasteText)
+    if (t.length > 0) {
+      setTickers(t)
+      if (Object.keys(w).length > 0) { setCurrentWeights(w); setMode('review') }
+      setExtractError('')
+    } else {
+      setExtractError('No se encontraron tickers en el texto.')
+    }
+    setShowPasteBox(false)
+    setPasteText('')
+  }
+
   const handleStrategies = async () => {
     if (tickers.length < 1) { setStrategiesError('Ingresa al menos 1 ticker'); return }
     setStrategiesLoading(true)
@@ -392,11 +432,31 @@ export default function Portfolio() {
                 <Upload size={15} />
                 Imagen
               </button>
-              <span className="flex items-center gap-1.5 text-slate-500 text-sm">
+              <button
+                type="button"
+                onClick={() => setShowPasteBox(v => !v)}
+                className="flex items-center gap-2 px-4 py-2 rounded-xl bg-navy-700 border border-slate-600 text-slate-300 hover:border-brand hover:text-brand transition-all text-sm"
+              >
                 <Clipboard size={15} />
-                o pega con Ctrl+V
-              </span>
+                Pegar lista
+              </button>
             </div>
+
+            {showPasteBox && (
+              <div className="mt-3 space-y-2">
+                <textarea
+                  className="input w-full h-32 text-xs font-mono resize-none"
+                  placeholder={"Pega aquí tu lista de tickers:\nGOOG  15.96%\nNVDA  10.25%\nAMZN  9.71%\n..."}
+                  value={pasteText}
+                  onChange={e => setPasteText(e.target.value)}
+                  autoFocus
+                />
+                <button onClick={handlePasteText} className="btn-primary text-sm py-2 px-4">
+                  Importar tickers
+                </button>
+              </div>
+            )}
+
             <p className="text-xs text-slate-600">Arrastra un archivo aquí · La IA extrae los tickers automáticamente</p>
           </div>
         )}
