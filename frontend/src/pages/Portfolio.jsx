@@ -309,17 +309,21 @@ export default function Portfolio() {
     const parsed = []
     const weights = {}
     for (const line of lines) {
-      // Skip header lines
-      if (/emisora|ticker|symbol|cartera|acciones|peso|%/i.test(line) && !/\d/.test(line)) continue
-      // Match ticker at start of line, optionally followed by a number
-      const m = line.match(/^([A-Z]{1,6}(?:[.\-][A-Z]{1,2})?)\s*[\t;,]?\s*([\d]+\.?\d*)?/i)
+      // Skip pure header lines (no digits at all)
+      if (/^(emisora|ticker|symbol|cartera|acciones|peso|nombre|company)$/i.test(line)) continue
+      // Extract all ticker-like tokens (1-6 uppercase letters) from the line
+      const upper = line.toUpperCase()
+      // Try: TICKER followed by optional separator and number
+      const m = upper.match(/\b([A-Z]{1,6})\b[\s\t,;]*(\d{1,6}(?:[.,]\d+)?)?/)
       if (m) {
-        const ticker = m[1].toUpperCase().replace(/[.\-].*/, '')
+        const ticker = m[1]
         if (ticker.length < 1 || ticker.length > 6) continue
+        // Skip common non-ticker words
+        if (/^(DE|LA|EL|LOS|LAS|EN|CON|POR|PARA|USD|MXN|EUR|THE|AND|FOR)$/.test(ticker)) continue
         if (!parsed.includes(ticker)) {
           parsed.push(ticker)
           if (m[2]) {
-            const num = parseFloat(m[2])
+            const num = parseFloat(m[2].replace(',', '.'))
             if (!isNaN(num) && num > 0) weights[ticker] = num > 1 ? num / 100 : num
           }
         }
