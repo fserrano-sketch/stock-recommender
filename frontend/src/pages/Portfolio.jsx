@@ -308,28 +308,25 @@ export default function Portfolio() {
     const lines = text.split(/[\n\r]+/).map(l => l.trim()).filter(Boolean)
     const parsed = []
     const weights = {}
+    const SKIP = /^(EMISORA|TICKER|SYMBOL|CARTERA|ACCIONES|PESO|NOMBRE|COMPANY|DE|LA|EL|LOS|LAS|EN|CON|POR|PARA|USD|MXN|EUR|THE|AND|FOR|N\/A|NA)$/
     for (const line of lines) {
-      // Skip pure header lines (no digits at all)
-      if (/^(emisora|ticker|symbol|cartera|acciones|peso|nombre|company)$/i.test(line)) continue
-      // Extract all ticker-like tokens (1-6 uppercase letters) from the line
       const upper = line.toUpperCase()
-      // Try: TICKER followed by optional separator and number
-      const m = upper.match(/\b([A-Z]{1,6})\b[\s\t,;]*(\d{1,6}(?:[.,]\d+)?)?/)
-      if (m) {
-        const ticker = m[1]
-        if (ticker.length < 1 || ticker.length > 6) continue
-        // Skip common non-ticker words
-        if (/^(DE|LA|EL|LOS|LAS|EN|CON|POR|PARA|USD|MXN|EUR|THE|AND|FOR)$/.test(ticker)) continue
-        if (!parsed.includes(ticker)) {
-          parsed.push(ticker)
-          if (m[2]) {
-            const num = parseFloat(m[2].replace(',', '.'))
-            if (!isNaN(num) && num > 0) weights[ticker] = num > 1 ? num / 100 : num
-          }
+      // Match: optional EXCHANGE: prefix, then ticker, then optional number
+      // e.g. "SWX:NEON 0.54%" or "GOOG 15.96%" or "BME:DHLA 0.14%"
+      const m = upper.match(/^(?:[A-Z]{2,4}:)?([A-Z][A-Z0-9.]{0,8})[\s\t,;]+(\d{1,3}(?:[.,]\d+)?)?/)
+      if (!m) continue
+      const ticker = m[1].replace(/\.$/, '') // strip trailing dot
+      if (ticker.length < 1 || ticker.length > 9) continue
+      if (SKIP.test(ticker)) continue
+      if (!parsed.includes(ticker)) {
+        parsed.push(ticker)
+        if (m[2]) {
+          const num = parseFloat(m[2].replace(',', '.'))
+          if (!isNaN(num) && num > 0) weights[ticker] = num > 1 ? num / 100 : num
         }
       }
     }
-    return { tickers: parsed.slice(0, 60), weights }
+    return { tickers: parsed.slice(0, 70), weights }
   }
 
   const handlePasteText = () => {
