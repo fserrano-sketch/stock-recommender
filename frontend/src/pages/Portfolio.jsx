@@ -337,16 +337,23 @@ export default function Portfolio() {
     const { tickers: t, weights: w } = parseTextTickers(pasteText)
     if (t.length > 0) {
       setTickers(t)
-      // Auto-distribute equal weights if none were parsed
-      const hasWeights = Object.keys(w).length > 0
-      if (hasWeights) {
-        setCurrentWeights(w)
-      } else {
-        const eq = +(100 / t.length).toFixed(2)
-        const autoW = {}
-        t.forEach((tk, i) => { autoW[tk] = i < t.length - 1 ? eq : +(100 - eq * (t.length - 1)).toFixed(2) })
-        setCurrentWeights(autoW)
+      // Fill missing weights with equal share of remaining %
+      const assigned = Object.values(w).reduce((a, b) => a + b, 0)
+      const missing = t.filter(tk => !w[tk])
+      const autoW = { ...w }
+      if (missing.length > 0) {
+        const remaining = Math.max(0, 100 - assigned * 100)
+        const share = +(remaining / missing.length).toFixed(2)
+        missing.forEach((tk, i) => {
+          autoW[tk] = i < missing.length - 1 ? share : +((remaining - share * (missing.length - 1))).toFixed(2)
+        })
       }
+      // Convert to 0-1 range if values are percentages
+      const vals = Object.values(autoW)
+      const isPercent = vals.some(v => v > 1)
+      const finalW = {}
+      t.forEach(tk => { finalW[tk] = isPercent ? +(autoW[tk] / 100).toFixed(4) : autoW[tk] })
+      setCurrentWeights(finalW)
       setMode('review')
       setExtractError('')
       setShowPasteBox(false)
