@@ -472,23 +472,45 @@ export default function Portfolio() {
 
             {showPasteBox && (
               <div className="mt-3 space-y-2 text-left">
-                <p className="text-xs text-slate-400">
-                  Pega tu lista — una acción por línea, con o sin porcentaje:
-                </p>
+                <div className="flex items-center justify-between">
+                  <p className="text-xs text-slate-400">Una acción por línea, con o sin porcentaje:</p>
+                  <button
+                    onClick={async () => {
+                      try {
+                        const text = await navigator.clipboard.readText()
+                        setPasteText(text)
+                        setExtractError('')
+                      } catch {
+                        // fallback: focus textarea so user can Ctrl+V
+                        document.querySelector('#paste-ticker-area')?.focus()
+                      }
+                    }}
+                    className="text-xs text-brand hover:text-brand/80 flex items-center gap-1 transition-colors"
+                  >
+                    📋 Pegar del portapapeles
+                  </button>
+                </div>
                 <textarea
-                  className="input w-full h-36 text-sm font-mono resize-none"
-                  placeholder={"AAPL\nMSFT  20%\nNVDA  15.5%\nGOOG\nAMZN  9.71%"}
+                  id="paste-ticker-area"
+                  className="input w-full h-40 text-sm font-mono resize-none"
+                  placeholder={"GOOG\nNVDA  10.35%\nAMZN  9.71%\nBRK.B 7.23%\n..."}
                   value={pasteText}
                   onChange={e => { setPasteText(e.target.value); setExtractError('') }}
+                  onPaste={e => { setExtractError('') }}
                   autoFocus
                 />
+                {pasteText.trim() && (
+                  <p className="text-xs text-brand">
+                    ✓ {pasteText.trim().split(/\n/).filter(l => l.trim()).length} líneas detectadas
+                  </p>
+                )}
                 <div className="flex items-center gap-2">
                   <button
                     onClick={handlePasteText}
                     disabled={!pasteText.trim()}
                     className="btn-primary text-sm"
                   >
-                    Importar {pasteText.trim() ? `(${pasteText.trim().split(/\n/).filter(l => l.trim()).length} líneas)` : 'tickers'}
+                    Importar tickers
                   </button>
                   <button
                     onClick={() => { setShowPasteBox(false); setPasteText(''); setExtractError('') }}
