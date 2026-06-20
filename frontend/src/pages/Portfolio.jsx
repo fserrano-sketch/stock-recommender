@@ -382,16 +382,26 @@ export default function Portfolio() {
       </h1>
 
       {/* Mode toggle */}
-      <div className="flex bg-navy-800 border border-slate-700/40 rounded-xl p-1 gap-1 w-fit">
+      <div className="flex bg-navy-900/60 border border-white/[0.06] rounded-2xl p-1.5 gap-2 w-fit">
         <button
           onClick={() => { setMode('build'); setCurrentWeights({}); setResult(null) }}
-          className={`px-4 py-2 rounded-lg text-sm font-medium transition-all ${mode === 'build' ? 'bg-brand text-navy-900' : 'text-slate-400 hover:text-slate-200'}`}
+          className="px-5 py-2.5 rounded-xl text-sm font-bold transition-all duration-200"
+          style={mode === 'build' ? {
+            background: 'linear-gradient(135deg, #7dd3fc 0%, #38bdf8 40%, #0284c7 100%)',
+            color: '#0a1628',
+            boxShadow: '0 0 24px rgba(56,189,248,0.55), 0 4px 20px rgba(56,189,248,0.35), inset 0 1px 0 rgba(255,255,255,0.25)'
+          } : { color: '#64748b' }}
         >
           🏗 Construir portafolio
         </button>
         <button
           onClick={() => { setMode('review'); setResult(null) }}
-          className={`px-4 py-2 rounded-lg text-sm font-medium transition-all ${mode === 'review' ? 'bg-brand text-navy-900' : 'text-slate-400 hover:text-slate-200'}`}
+          className="px-5 py-2.5 rounded-xl text-sm font-bold transition-all duration-200"
+          style={mode === 'review' ? {
+            background: 'linear-gradient(135deg, #7dd3fc 0%, #38bdf8 40%, #0284c7 100%)',
+            color: '#0a1628',
+            boxShadow: '0 0 24px rgba(56,189,248,0.55), 0 4px 20px rgba(56,189,248,0.35), inset 0 1px 0 rgba(255,255,255,0.25)'
+          } : { color: '#64748b' }}
         >
           🔍 Revisar portafolio existente
         </button>
