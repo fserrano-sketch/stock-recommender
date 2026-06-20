@@ -53,14 +53,13 @@ function pointInPolygon(lat, lon, poly) {
 // Build continent dot cloud using polygon fill
 const buildDots = () => {
   const dots = []
-  const step = 2.2
+  const step = 1.6
   const shapes = Object.values(SHAPES)
   for (let lat = -60; lat <= 83; lat += step) {
     for (let lon = -180; lon <= 180; lon += step) {
       const inAny = shapes.some(s => pointInPolygon(lat, lon, s))
       if (inAny) {
-        // Add slight jitter
-        dots.push([lat + (Math.random()-0.5)*1.2, lon + (Math.random()-0.5)*1.2])
+        dots.push([lat + (Math.random()-0.5)*0.8, lon + (Math.random()-0.5)*0.8])
       }
     }
   }
@@ -114,7 +113,7 @@ export default function GlobeHero() {
 
     const W = () => canvas.offsetWidth
     const H = () => canvas.offsetHeight
-    const R = () => Math.min(W(), H()) * 0.40
+    const R = () => Math.min(W(), H()) * 0.37
 
     // Pre-bake unit-sphere xyz for continent dots
     const contXYZ = CONTINENT_DOTS.map(([lat, lon]) => latLonToXYZ(lat, lon, 1))
@@ -174,7 +173,7 @@ export default function GlobeHero() {
       t += 0.007
       const rot = t * 0.22
       const r = R()
-      const cx = W()/2, cy = H()/2
+      const cx = W()*0.58, cy = H()*0.5
 
       // BG
       ctx.fillStyle='#050d1e'; ctx.fillRect(0,0,W(),H())
@@ -231,20 +230,20 @@ export default function GlobeHero() {
         ctx.strokeStyle=gc; ctx.lineWidth=0.4; ctx.stroke()
       }
 
-      // ── CONTINENT DOTS — bright and large ──
+      // ── CONTINENT DOTS — fine and dense ──
       contXYZ.forEach(([dx,dy,dz]) => {
         const [rx,ry,rz]=rotateY([dx*r,dy*r,dz*r],rot)
         if(rz<0) return
         const depth=rz/r           // 0..1, 1=front
-        const alpha=depth*0.65+0.35
-        const size=depth*2.2+1.0
+        const alpha=depth*0.7+0.25
+        const size=depth*0.9+0.45
         ctx.beginPath(); ctx.arc(cx+rx,cy-ry,size,0,Math.PI*2)
-        ctx.fillStyle=`rgba(200,235,255,${alpha.toFixed(2)})`
+        ctx.fillStyle=`rgba(210,238,255,${alpha.toFixed(2)})`
         ctx.fill()
-        // Extra bright core on front-facing dots
-        if(depth>0.7) {
-          ctx.beginPath(); ctx.arc(cx+rx,cy-ry,size*0.4,0,Math.PI*2)
-          ctx.fillStyle=`rgba(255,255,255,${(depth*0.7).toFixed(2)})`
+        // Bright core on front-facing dots
+        if(depth>0.65) {
+          ctx.beginPath(); ctx.arc(cx+rx,cy-ry,size*0.35,0,Math.PI*2)
+          ctx.fillStyle=`rgba(255,255,255,${(depth*0.8).toFixed(2)})`
           ctx.fill()
         }
       })

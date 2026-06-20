@@ -62,29 +62,31 @@ export default function Home() {
       <div className="relative overflow-hidden" style={{ height: 420 }}>
         <GlobeHero />
 
-        {/* Vignette so text is readable */}
+        {/* Vignette — left-heavy so text stays readable, globe shows on right */}
         <div className="absolute inset-0 pointer-events-none"
-          style={{ background: 'radial-gradient(ellipse at 40% 50%, rgba(6,13,26,0.1) 0%, rgba(6,13,26,0.65) 100%)' }} />
+          style={{ background: 'linear-gradient(to right, rgba(6,13,26,0.90) 0%, rgba(6,13,26,0.50) 42%, rgba(6,13,26,0.05) 100%)' }} />
+        <div className="absolute inset-0 pointer-events-none"
+          style={{ background: 'radial-gradient(ellipse at 58% 50%, transparent 28%, rgba(6,13,26,0.45) 100%)' }} />
         <div className="absolute bottom-0 left-0 right-0 h-28 pointer-events-none"
           style={{ background: 'linear-gradient(to bottom, transparent, #060d1a)' }} />
 
-        {/* Hero content */}
-        <div className="absolute inset-0 flex flex-col items-center justify-center z-10 px-6 text-center">
-          <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full text-xs font-semibold mb-4 border border-brand/30"
-            style={{ background: 'rgba(56,189,248,0.1)', color: '#38bdf8' }}>
+        {/* Hero content — left-aligned on desktop */}
+        <div className="absolute inset-0 flex flex-col items-start justify-center z-10 px-8 sm:px-16 max-w-2xl">
+          <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full text-xs font-semibold mb-5 border border-brand/30"
+            style={{ background: 'rgba(56,189,248,0.12)', color: '#38bdf8' }}>
             <span className="w-1.5 h-1.5 rounded-full bg-brand animate-pulse" />
             Análisis con IA en tiempo real
           </div>
 
-          <h1 className="text-4xl sm:text-5xl font-black text-white mb-3 leading-tight tracking-tight drop-shadow-lg">
+          <h1 className="text-4xl sm:text-5xl font-black text-white mb-3 leading-tight tracking-tight">
             Invierte con{' '}
             <span style={{ color: '#38bdf8' }}>inteligencia</span>
           </h1>
-          <p className="text-slate-300 mb-7 max-w-md text-sm leading-relaxed drop-shadow">
+          <p className="text-slate-300 mb-7 max-w-sm text-sm leading-relaxed">
             Análisis fundamentado en datos reales de mercado, indicadores técnicos y razonamiento IA
           </p>
 
-          <form onSubmit={handleAnalyze} className="flex gap-3 w-full max-w-lg">
+          <form onSubmit={handleAnalyze} className="flex gap-3 w-full max-w-md">
             <TickerInput
               value={ticker}
               onChange={setTicker}
