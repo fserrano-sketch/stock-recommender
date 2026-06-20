@@ -51,8 +51,8 @@ export default function Layout({ children }) {
             {isLoggedIn() ? (
               <>
                 <div className="hidden sm:flex items-center gap-2 mr-2">
-                  <div className="w-7 h-7 rounded-lg flex items-center justify-center text-xs font-bold text-white"
-                    style={{ background: 'linear-gradient(135deg, #38bdf8, #38bdf8)' }}>
+                  <div className="w-9 h-9 rounded-xl flex items-center justify-center text-sm font-bold"
+                    style={{ background: 'linear-gradient(135deg, #7dd3fc 0%, #38bdf8 40%, #0284c7 100%)', color: '#0a1628', boxShadow: '0 0 18px rgba(56,189,248,0.6), inset 0 1px 0 rgba(255,255,255,0.25)' }}>
                     {(user?.name || user?.email || '?')[0].toUpperCase()}
                   </div>
                   <span className="text-slate-400 text-sm">{user?.name || user?.email}</span>
