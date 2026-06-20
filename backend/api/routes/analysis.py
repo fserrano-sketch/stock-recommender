@@ -29,8 +29,19 @@ def list_analyses(
     elif period == "7d":
         q = q.filter(Analysis.created_at >= datetime.utcnow() - timedelta(days=7))
 
-    analyses = q.order_by(Analysis.created_at.desc()).limit(limit).all()
-    return [_serialize(a) for a in analyses]
+    analyses = q.order_by(Analysis.created_at.desc()).limit(limit * 3).all()
+
+    # Deduplicate: keep only the most recent per ticker
+    seen = set()
+    unique = []
+    for a in analyses:
+        if a.ticker not in seen:
+            seen.add(a.ticker)
+            unique.append(a)
+        if len(unique) >= limit:
+            break
+
+    return [_serialize(a) for a in unique]
 
 
 @router.post("/{ticker}")
