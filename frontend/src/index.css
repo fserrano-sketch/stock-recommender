@@ -24,10 +24,10 @@
 
   /* Buttons */
   .btn-primary {
-    @apply relative font-semibold px-5 py-2.5 rounded-xl transition-all duration-200 disabled:opacity-40 disabled:cursor-not-allowed overflow-hidden;
-    background: linear-gradient(135deg, #38bdf8 0%, #0284c7 100%);
-    color: #0f172a;
-    box-shadow: 0 4px 20px rgba(56, 189, 248, 0.3);
+    @apply relative font-bold px-6 py-3 rounded-xl transition-all duration-200 disabled:opacity-40 disabled:cursor-not-allowed overflow-hidden;
+    background: linear-gradient(135deg, #7dd3fc 0%, #38bdf8 40%, #0284c7 100%);
+    color: #0a1628;
+    box-shadow: 0 0 24px rgba(56,189,248,0.55), 0 4px 20px rgba(56,189,248,0.35), inset 0 1px 0 rgba(255,255,255,0.25);
   }
   .btn-primary:hover:not(:disabled) {
     transform: translateY(-1px);
