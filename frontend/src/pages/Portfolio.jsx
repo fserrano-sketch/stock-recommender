@@ -4,7 +4,7 @@ import {
   ScatterChart, Scatter, XAxis, YAxis, Tooltip, ResponsiveContainer,
   LineChart, Line, CartesianGrid, Legend, BarChart, Bar, Cell
 } from 'recharts'
-import { PieChart as PieChartIcon, Plus, X, Zap, ChevronDown, ChevronUp, Save, TrendingUp, TrendingDown, RefreshCw, Trash2, ImageDown, Copy, Check, Upload, FileSpreadsheet, Clipboard } from 'lucide-react'
+import { PieChart as PieChartIcon, Plus, X, Zap, ChevronDown, ChevronUp, Save, TrendingUp, TrendingDown, RefreshCw, Trash2, ImageDown, Copy, Check, Upload, FileSpreadsheet, Clipboard, Brain, ShieldAlert, Lightbulb, ArrowUpRight, AlertTriangle } from 'lucide-react'
 import api from '../lib/api'
 import { isLoggedIn } from '../lib/auth'
 import TickerInput from '../components/TickerInput'
@@ -80,6 +80,9 @@ export default function Portfolio() {
   const [saving, setSaving] = useState(false)
   const [trackingData, setTrackingData] = useState({})
   const [trackingLoading, setTrackingLoading] = useState({})
+  const [strategies, setStrategies] = useState(null)
+  const [strategiesLoading, setStrategiesLoading] = useState(false)
+  const [strategiesError, setStrategiesError] = useState('')
   const [exporting, setExporting] = useState(false)
   const [copied, setCopied] = useState(false)
   const [extracting, setExtracting] = useState(false)
@@ -264,6 +267,31 @@ export default function Portfolio() {
     finally { setSaving(false) }
   }
 
+  const handleStrategies = async () => {
+    if (tickers.length < 1) { setStrategiesError('Ingresa al menos 1 ticker'); return }
+    setStrategiesLoading(true)
+    setStrategiesError('')
+    setStrategies(null)
+    try {
+      const payload = { tickers, current_weights: mode === 'review' ? currentWeights : null }
+      const { data } = await api.post('/portfolio/strategies', payload)
+      setStrategies(data)
+    } catch (err) {
+      setStrategiesError(err.response?.data?.detail || 'Error al generar estrategias')
+    } finally {
+      setStrategiesLoading(false)
+    }
+  }
+
+  const STRATEGY_COLORS = {
+    ACCION: { bg: 'rgba(56,189,248,0.1)', border: 'rgba(56,189,248,0.2)', text: '#38bdf8' },
+    PROTECCION: { bg: 'rgba(251,191,36,0.1)', border: 'rgba(251,191,36,0.2)', text: '#fbbf24' },
+    CRECIMIENTO: { bg: 'rgba(52,211,153,0.1)', border: 'rgba(52,211,153,0.2)', text: '#34d399' },
+    DIVIDENDOS: { bg: 'rgba(167,139,250,0.1)', border: 'rgba(167,139,250,0.2)', text: '#a78bfa' },
+    REBALANCEO: { bg: 'rgba(248,113,113,0.1)', border: 'rgba(248,113,113,0.2)', text: '#f87171' },
+  }
+  const PRIORITY_DOT = { ALTA: '#f87171', MEDIA: '#fbbf24', BAJA: '#34d399' }
+
   const totalWeight = Object.values(currentWeights).reduce((a, b) => a + Number(b), 0)
   const activeOpt = result?.[activeTab] || {}
 
@@ -390,26 +418,148 @@ export default function Portfolio() {
           </div>
         )}
 
+        {/* Primary: Strategies */}
         <button
-          onClick={handleOptimize}
-          disabled={loading || tickers.length < 2}
+          onClick={handleStrategies}
+          disabled={strategiesLoading || tickers.length < 1}
           className="btn-primary w-full flex items-center justify-center gap-2"
         >
-          {loading ? (
+          {strategiesLoading ? (
             <>
-              <span className="w-4 h-4 border-2 border-navy-900 border-t-transparent rounded-full animate-spin" />
-              Optimizando con 3 metodologías...
+              <span className="w-4 h-4 border-2 border-navy-900/60 border-t-transparent rounded-full animate-spin" />
+              Analizando con IA...
             </>
           ) : (
             <>
-              <Zap size={16} />
-              Optimizar portafolio
+              <Brain size={16} />
+              Ver estrategias con IA
             </>
           )}
         </button>
 
-        {error && <p className="text-red-400 text-sm">{error}</p>}
+        {/* Secondary: Optimize */}
+        <button
+          onClick={handleOptimize}
+          disabled={loading || tickers.length < 2}
+          className="w-full flex items-center justify-center gap-2 py-2.5 rounded-xl border border-white/[0.08] text-slate-400 hover:text-slate-200 hover:border-white/[0.15] transition-all text-sm"
+        >
+          {loading ? (
+            <>
+              <span className="w-3.5 h-3.5 border-2 border-slate-400 border-t-transparent rounded-full animate-spin" />
+              Optimizando...
+            </>
+          ) : (
+            <>
+              <Zap size={14} />
+              Optimización matemática
+            </>
+          )}
+        </button>
+
+        {(error || strategiesError) && <p className="text-red-400 text-sm">{error || strategiesError}</p>}
       </div>
+
+      {/* Strategies */}
+      {strategies && (
+        <div className="space-y-4 animate-fade-in">
+          {/* Overview header */}
+          <div className="rounded-2xl p-5 border border-white/[0.08]"
+            style={{ background: 'linear-gradient(135deg, rgba(56,189,248,0.07) 0%, rgba(167,139,250,0.05) 100%)' }}>
+            <div className="flex items-start justify-between gap-3 mb-3">
+              <div className="flex items-center gap-2">
+                <Brain size={18} className="text-brand" />
+                <h2 className="font-bold text-slate-100">Estrategias IA</h2>
+              </div>
+              <div className="flex gap-2">
+                <span className="text-xs px-2.5 py-1 rounded-full border font-medium"
+                  style={{
+                    background: strategies.risk_level === 'Agresivo' ? 'rgba(248,113,113,0.1)' : strategies.risk_level === 'Conservador' ? 'rgba(52,211,153,0.1)' : 'rgba(251,191,36,0.1)',
+                    borderColor: strategies.risk_level === 'Agresivo' ? 'rgba(248,113,113,0.25)' : strategies.risk_level === 'Conservador' ? 'rgba(52,211,153,0.25)' : 'rgba(251,191,36,0.25)',
+                    color: strategies.risk_level === 'Agresivo' ? '#f87171' : strategies.risk_level === 'Conservador' ? '#34d399' : '#fbbf24',
+                  }}>
+                  {strategies.risk_level}
+                </span>
+                <span className="text-xs px-2.5 py-1 rounded-full border border-white/[0.08] text-slate-400"
+                  style={{ background: 'rgba(255,255,255,0.04)' }}>
+                  Diversif. {strategies.diversification_score}/100
+                </span>
+              </div>
+            </div>
+            <p className="text-slate-300 text-sm leading-relaxed">{strategies.overview}</p>
+          </div>
+
+          {/* Strategy cards */}
+          <div className="space-y-3">
+            {strategies.strategies?.map((s, i) => {
+              const sc = STRATEGY_COLORS[s.type] || STRATEGY_COLORS.ACCION
+              return (
+                <div key={i} className="rounded-2xl p-4 border transition-all"
+                  style={{ background: sc.bg, borderColor: sc.border }}>
+                  <div className="flex items-start justify-between gap-2 mb-2">
+                    <div className="flex items-center gap-2 flex-wrap">
+                      <span className="text-xs font-bold px-2 py-0.5 rounded-full" style={{ background: sc.border, color: sc.text }}>
+                        {s.type}
+                      </span>
+                      <span className="font-semibold text-slate-100 text-sm">{s.title}</span>
+                    </div>
+                    <div className="flex items-center gap-1 shrink-0">
+                      <span className="w-2 h-2 rounded-full" style={{ background: PRIORITY_DOT[s.priority] }} />
+                      <span className="text-xs text-slate-500">{s.priority}</span>
+                    </div>
+                  </div>
+                  <p className="text-slate-300 text-sm leading-relaxed">{s.description}</p>
+                  {s.tickers_involved?.length > 0 && (
+                    <div className="flex gap-1.5 mt-2.5 flex-wrap">
+                      {s.tickers_involved.map(t => (
+                        <span
+                          key={t}
+                          onClick={() => navigate(`/analysis/${t}`)}
+                          className="font-mono text-xs px-2 py-0.5 rounded-lg cursor-pointer hover:opacity-80 transition-opacity"
+                          style={{ background: 'rgba(255,255,255,0.06)', color: sc.text, border: `1px solid ${sc.border}` }}
+                        >{t}</span>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              )
+            })}
+          </div>
+
+          {/* Warnings + Opportunities */}
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+            {strategies.warnings?.length > 0 && (
+              <div className="rounded-2xl p-4 border border-red-500/15" style={{ background: 'rgba(248,113,113,0.05)' }}>
+                <div className="flex items-center gap-2 mb-2">
+                  <AlertTriangle size={14} className="text-red-400" />
+                  <span className="text-xs font-semibold text-red-400 uppercase tracking-wide">Advertencias</span>
+                </div>
+                <ul className="space-y-1.5">
+                  {strategies.warnings.map((w, i) => (
+                    <li key={i} className="text-sm text-slate-300 flex gap-2">
+                      <span className="text-red-400 shrink-0">•</span>{w}
+                    </li>
+                  ))}
+                </ul>
+              </div>
+            )}
+            {strategies.opportunities?.length > 0 && (
+              <div className="rounded-2xl p-4 border border-emerald-500/15" style={{ background: 'rgba(52,211,153,0.05)' }}>
+                <div className="flex items-center gap-2 mb-2">
+                  <Lightbulb size={14} className="text-emerald-400" />
+                  <span className="text-xs font-semibold text-emerald-400 uppercase tracking-wide">Oportunidades</span>
+                </div>
+                <ul className="space-y-1.5">
+                  {strategies.opportunities.map((o, i) => (
+                    <li key={i} className="text-sm text-slate-300 flex gap-2">
+                      <span className="text-emerald-400 shrink-0">•</span>{o}
+                    </li>
+                  ))}
+                </ul>
+              </div>
+            )}
+          </div>
+        </div>
+      )}
 
       {/* Results */}
       {result && (

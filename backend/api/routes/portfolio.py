@@ -237,6 +237,80 @@ async def extract_from_image(
         raise HTTPException(status_code=422, detail='No se pudieron extraer tickers de la imagen')
 
 
+@router.post("/strategies")
+def get_portfolio_strategies(
+    req: TickerListRequest,
+    current_user: User = Depends(get_optional_user),
+):
+    """Use Claude AI to generate actionable investment strategies for the given portfolio."""
+    if len(req.tickers) < 1:
+        raise HTTPException(status_code=400, detail="Ingresa al menos 1 ticker")
+
+    import anthropic, os, json
+    from services.data_fetcher import get_stock_data
+
+    # Fetch quick data for each ticker
+    portfolio_info = []
+    for ticker in req.tickers[:15]:
+        try:
+            d = get_stock_data(ticker)
+            portfolio_info.append({
+                "ticker": ticker,
+                "company": d.get("company_name", ticker),
+                "sector": d.get("sector", "N/A"),
+                "price": d.get("price"),
+                "change_pct": d.get("price_change_pct"),
+                "pe": d.get("pe_ratio"),
+                "weight": req.current_weights.get(ticker) if req.current_weights else None,
+            })
+        except Exception:
+            portfolio_info.append({"ticker": ticker, "company": ticker, "sector": "N/A"})
+
+    weights_text = ""
+    if req.current_weights:
+        weights_text = "\nPesos actuales: " + ", ".join(
+            f"{t}: {v*100:.1f}%" for t, v in req.current_weights.items() if t in req.tickers
+        )
+
+    prompt = f"""Eres un estratega de inversiones experto. Analiza este portafolio y da estrategias concretas y accionables.
+
+Portafolio: {json.dumps(portfolio_info, ensure_ascii=False)}{weights_text}
+
+Responde SOLO con este JSON (sin markdown, sin texto extra):
+{{
+  "overview": "Resumen ejecutivo del portafolio en 2 oraciones",
+  "risk_level": "Conservador|Moderado|Agresivo",
+  "diversification_score": 75,
+  "strategies": [
+    {{
+      "title": "Título de la estrategia",
+      "type": "ACCION|PROTECCION|CRECIMIENTO|DIVIDENDOS|REBALANCEO",
+      "priority": "ALTA|MEDIA|BAJA",
+      "description": "Descripción clara de qué hacer y por qué",
+      "tickers_involved": ["AAPL", "MSFT"]
+    }}
+  ],
+  "warnings": ["Riesgo o advertencia importante"],
+  "opportunities": ["Oportunidad específica detectada"]
+}}
+
+Da entre 4 y 6 estrategias concretas, priorizadas por impacto. Sé directo y específico con los tickers."""
+
+    client = anthropic.Anthropic(api_key=os.getenv('ANTHROPIC_API_KEY'))
+    msg = client.messages.create(
+        model='claude-haiku-4-5-20251001',
+        max_tokens=1500,
+        messages=[{'role': 'user', 'content': prompt}]
+    )
+
+    try:
+        text = msg.content[0].text.strip()
+        match = re.search(r'\{.*\}', text, re.DOTALL)
+        return json.loads(match.group()) if match else {"error": "No se pudo generar el análisis"}
+    except Exception:
+        raise HTTPException(status_code=500, detail="Error generando estrategias")
+
+
 @router.delete("/{portfolio_id}")
 def delete_portfolio(
     portfolio_id: int,
