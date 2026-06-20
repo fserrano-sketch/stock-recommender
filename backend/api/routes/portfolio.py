@@ -30,8 +30,8 @@ def optimize_portfolio(
     """Run portfolio optimization without saving. Quick analysis endpoint."""
     if len(req.tickers) < 2:
         raise HTTPException(status_code=400, detail="Se necesitan al menos 2 activos para optimizar")
-    if len(req.tickers) > 20:
-        raise HTTPException(status_code=400, detail="Máximo 20 activos por portafolio")
+    if len(req.tickers) > 60:
+        raise HTTPException(status_code=400, detail="Máximo 60 activos por portafolio")
 
     from services.portfolio_optimizer import optimize_portfolio
     from services.claude_service import generate_portfolio_analysis

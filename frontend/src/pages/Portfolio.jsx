@@ -329,7 +329,7 @@ export default function Portfolio() {
         }
       }
     }
-    return { tickers: parsed.slice(0, 20), weights }
+    return { tickers: parsed.slice(0, 60), weights }
   }
 
   const handlePasteText = () => {
@@ -337,13 +337,14 @@ export default function Portfolio() {
     const { tickers: t, weights: w } = parseTextTickers(pasteText)
     if (t.length > 0) {
       setTickers(t)
-      if (Object.keys(w).length > 0) { setCurrentWeights(w); setMode('review') }
+      setCurrentWeights(w)
+      if (Object.keys(w).length > 0) setMode('review')
       setExtractError('')
+      setShowPasteBox(false)
+      setPasteText('')
     } else {
-      setExtractError('No se encontraron tickers en el texto.')
+      setExtractError(`No se encontraron tickers válidos. Asegúrate de pegar los símbolos bursátiles (ej: AAPL, MSFT, NVDA).`)
     }
-    setShowPasteBox(false)
-    setPasteText('')
   }
 
   const handleStrategies = async () => {
