@@ -102,16 +102,6 @@
   background: linear-gradient(90deg, transparent, rgba(56,189,248,0.5), rgba(167,139,250,0.5), transparent);
 }
 
-/* Ticker strip scroll */
-@keyframes ticker {
-  0% { transform: translateX(0); }
-  100% { transform: translateX(-50%); }
-}
-.animate-ticker {
-  animation: ticker 30s linear infinite;
-}
-.animate-ticker:hover { animation-play-state: paused; }
-
 /* Scrollbar */
 ::-webkit-scrollbar { width: 4px; height: 4px; }
 ::-webkit-scrollbar-track { background: transparent; }
