@@ -1,19 +1,41 @@
 import { useEffect, useRef } from 'react'
 
-// Simplified continent outlines as lat/lon pairs
-const CONTINENTS = [
-  // North America
-  [[49,-125],[49,-66],[25,-80],[20,-87],[15,-85],[8,-77],[8,-77],[20,-105],[32,-117],[49,-125]],
-  // South America
-  [[10,-75],[8,-60],[5,-52],[0,-50],[-5,-35],[-23,-43],[-34,-58],[-55,-65],[-55,-70],[-18,-70],[-5,-80],[0,-78],[10,-75]],
-  // Europe
-  [[71,28],[60,5],[45,-10],[36,-9],[36,28],[42,42],[71,42],[71,28]],
-  // Africa
-  [[37,10],[37,37],[15,42],[0,42],[-35,20],[-35,-17],[0,-17],[15,-17],[20,10],[37,10]],
-  // Asia
-  [[71,30],[71,180],[60,140],[35,140],[22,114],[10,100],[10,80],[25,57],[12,45],[12,45],[37,42],[71,30]],
-  // Australia
-  [[-17,122],[-17,145],[-39,145],[-39,114],[-17,114],[-17,122]],
+// Dense continent dot clouds — [lat, lon] pairs
+const CONTINENT_DOTS = []
+const addRegion = (latRange, lonRange, density = 8) => {
+  const [la, lb] = latRange, [loa, lob] = lonRange
+  for (let lat = la; lat <= lb; lat += density) {
+    for (let lon = loa; lon <= lob; lon += density) {
+      CONTINENT_DOTS.push([lat + (Math.random()-0.5)*density*0.7, lon + (Math.random()-0.5)*density*0.7])
+    }
+  }
+}
+// North America
+addRegion([25,70],[-140,-60], 4)
+// South America
+addRegion([-55,12],[-82,-34], 4)
+// Europe
+addRegion([36,71],[-10,40], 4)
+// Africa
+addRegion([-35,37],[-18,52], 4)
+// Asia
+addRegion([5,75],[25,145], 3.5)
+// Australia
+addRegion([-44,-12],[113,154], 5)
+// Greenland
+addRegion([60,83],[-55,-18], 6)
+
+const HUBS = [
+  { lat: 40.7, lon: -74,   color: [255,200,60],  label: 'New York' },
+  { lat: 51.5, lon: -0.1,  color: [255,200,60],  label: 'London' },
+  { lat: 35.7, lon: 139.7, color: [255,200,60],  label: 'Tokyo' },
+  { lat: 22.3, lon: 114.2, color: [100,240,255], label: 'Hong Kong' },
+  { lat: 1.3,  lon: 103.8, color: [100,240,255], label: 'Singapore' },
+  { lat: 48.8, lon: 2.3,   color: [255,200,60],  label: 'Paris' },
+  { lat: -23.5,lon: -46.6, color: [255,120,200], label: 'São Paulo' },
+  { lat: 25.2, lon: 55.3,  color: [100,240,255], label: 'Dubai' },
+  { lat: 19.4, lon: -99.1, color: [255,200,60],  label: 'Mexico City' },
+  { lat: 55.7, lon: 37.6,  color: [100,240,255], label: 'Moscow' },
 ]
 
 function latLonToXYZ(lat, lon, r) {
@@ -21,23 +43,14 @@ function latLonToXYZ(lat, lon, r) {
   const theta = (lon + 180) * Math.PI / 180
   return [
     -r * Math.sin(phi) * Math.cos(theta),
-    r * Math.cos(phi),
-    r * Math.sin(phi) * Math.sin(theta),
+     r * Math.cos(phi),
+     r * Math.sin(phi) * Math.sin(theta),
   ]
 }
 
-const HUBS = [
-  [40.7, -74],   // New York
-  [51.5, -0.1],  // London
-  [35.7, 139.7], // Tokyo
-  [22.3, 114.2], // Hong Kong
-  [1.3, 103.8],  // Singapore
-  [19.4, -99.1], // Mexico City
-  [48.8, 2.3],   // Paris
-  [-23.5, -46.6],// São Paulo
-  [55.7, 37.6],  // Moscow
-  [25.2, 55.3],  // Dubai
-]
+function rotateY([x, y, z], a) {
+  return [x * Math.cos(a) - z * Math.sin(a), y, x * Math.sin(a) + z * Math.cos(a)]
+}
 
 export default function GlobeHero() {
   const canvasRef = useRef(null)
@@ -51,226 +64,220 @@ export default function GlobeHero() {
     const resize = () => {
       canvas.width = canvas.offsetWidth * window.devicePixelRatio
       canvas.height = canvas.offsetHeight * window.devicePixelRatio
-      ctx.scale(window.devicePixelRatio, window.devicePixelRatio)
+      ctx.setTransform(window.devicePixelRatio, 0, 0, window.devicePixelRatio, 0, 0)
     }
     resize()
     window.addEventListener('resize', resize)
 
     const W = () => canvas.offsetWidth
     const H = () => canvas.offsetHeight
-    const R = () => Math.min(W(), H()) * 0.38
+    const R = () => Math.min(W(), H()) * 0.40
 
-    const project = (xyz, rot) => {
-      const [x, y, z] = xyz
-      const rx = x * Math.cos(rot) - z * Math.sin(rot)
-      const rz = x * Math.sin(rot) + z * Math.cos(rot)
-      return { sx: W() / 2 + rx, sy: H() / 2 - y, z: rz }
-    }
+    // Pre-bake continent xyz (unit sphere, rotated at runtime)
+    const contDots = CONTINENT_DOTS.map(([lat, lon]) => latLonToXYZ(lat, lon, 1))
 
-    // Pre-generate dots on sphere surface
-    const dots = []
-    for (let i = 0; i < 400; i++) {
-      const phi = Math.acos(1 - 2 * (i + 0.5) / 400)
-      const theta = Math.PI * (1 + Math.sqrt(5)) * i
-      dots.push([
-        Math.sin(phi) * Math.cos(theta),
-        Math.cos(phi),
-        Math.sin(phi) * Math.sin(theta),
-      ])
-    }
-
-    // Wave particles
-    const waves = Array.from({ length: 80 }, (_, i) => ({
-      x: (i / 80) * 2,
-      y: 0.3 + Math.random() * 0.4,
-      speed: 0.003 + Math.random() * 0.004,
-      amp: 0.04 + Math.random() * 0.06,
-      freq: 2 + Math.random() * 3,
-      phase: Math.random() * Math.PI * 2,
-      color: Math.random() > 0.5 ? [56, 189, 248] : [100, 150, 255],
+    // Flowing streams
+    const STREAMS = Array.from({ length: 12 }, (_, i) => ({
+      phase:  (i / 12) * Math.PI * 2,
+      yBase:  0.25 + (i % 4) * 0.15,
+      amp:    0.06 + Math.random() * 0.08,
+      freq:   1.5 + Math.random() * 2,
+      speed:  0.6 + Math.random() * 0.8,
+      width:  1.2 + Math.random() * 2,
+      color:  i % 3 === 0
+        ? [80, 140, 255]
+        : i % 3 === 1
+          ? [120, 60, 255]
+          : [56, 200, 255],
+      alpha: 0.15 + Math.random() * 0.2,
     }))
+
+    // Triangulated mesh points (bottom-left and bottom-right corners)
+    const MESH = (() => {
+      const pts = []
+      const cols = 22, rows = 10
+      for (let r = 0; r <= rows; r++) {
+        for (let c = 0; c <= cols; c++) {
+          pts.push({ xf: c / cols, yf: r / rows })
+        }
+      }
+      const tris = []
+      for (let r = 0; r < rows; r++) {
+        for (let c = 0; c < cols; c++) {
+          const a = r*(cols+1)+c, b = a+1, d = a+(cols+1), e = d+1
+          tris.push([a, b, d], [b, e, d])
+        }
+      }
+      return { pts, tris }
+    })()
+
+    const drawMesh = (side) => {
+      const w = W(), h = H()
+      const mw = w * 0.45, mh = h * 0.55
+      const ox = side === 'left' ? -mw * 0.3 : w - mw * 0.7
+      const oy = h * 0.5
+      // Wave distortion
+      const getPt = ({ xf, yf }) => {
+        const wave = Math.sin(xf * 4 + t * 1.5 + (side === 'left' ? 0 : Math.PI)) * 0.04
+        return {
+          x: ox + xf * mw,
+          y: oy + yf * mh + wave * mh + yf * yf * mh * 0.3
+        }
+      }
+      const pts = MESH.pts.map(getPt)
+      // Draw triangles (edges only)
+      ctx.lineWidth = 0.5
+      MESH.tris.forEach(([a, b, d]) => {
+        const pa = pts[a], pb = pts[b], pd = pts[d]
+        const avgY = (pa.y + pb.y + pd.y) / 3
+        const alpha = Math.max(0, Math.min(0.18, (avgY - oy) / mh * 0.4))
+        ctx.beginPath()
+        ctx.moveTo(pa.x, pa.y); ctx.lineTo(pb.x, pb.y); ctx.lineTo(pd.x, pd.y); ctx.closePath()
+        ctx.strokeStyle = `rgba(80,160,255,${alpha})`
+        ctx.stroke()
+      })
+      // Draw nodes at vertices
+      pts.forEach(({ x, y }, i) => {
+        if (i % 3 !== 0) return
+        const alpha = Math.max(0, Math.min(0.5, (y - oy) / mh * 0.6))
+        ctx.beginPath()
+        ctx.arc(x, y, 1.2, 0, Math.PI * 2)
+        ctx.fillStyle = `rgba(100,200,255,${alpha})`
+        ctx.fill()
+      })
+    }
 
     const draw = () => {
       ctx.clearRect(0, 0, W(), H())
-      t += 0.005
-      const rot = t * 0.3
+      t += 0.008
+      const rot = t * 0.25
       const r = R()
       const cx = W() / 2
       const cy = H() / 2
 
-      // Dark background gradient
-      const bg = ctx.createRadialGradient(cx, cy, 0, cx, cy, Math.max(W(), H()))
-      bg.addColorStop(0, '#0a1628')
-      bg.addColorStop(1, '#060d1a')
-      ctx.fillStyle = bg
+      // Background
+      ctx.fillStyle = '#050d1e'
       ctx.fillRect(0, 0, W(), H())
 
-      // Globe outer atmosphere glow (big soft ring)
-      const atmos = ctx.createRadialGradient(cx, cy, r * 0.85, cx, cy, r * 1.5)
-      atmos.addColorStop(0, 'rgba(56,189,248,0.18)')
-      atmos.addColorStop(0.4, 'rgba(56,130,255,0.08)')
-      atmos.addColorStop(1, 'rgba(0,0,0,0)')
-      ctx.beginPath()
-      ctx.arc(cx, cy, r * 1.5, 0, Math.PI * 2)
-      ctx.fillStyle = atmos
-      ctx.fill()
+      // Mesh grids (bottom corners)
+      drawMesh('left')
+      drawMesh('right')
 
-      // Globe inner fill — ocean base color
-      const ocean = ctx.createRadialGradient(cx - r * 0.2, cy - r * 0.2, 0, cx, cy, r)
-      ocean.addColorStop(0, 'rgba(30,80,140,0.55)')
-      ocean.addColorStop(0.6, 'rgba(10,30,70,0.45)')
-      ocean.addColorStop(1, 'rgba(5,15,40,0.3)')
-      ctx.beginPath()
-      ctx.arc(cx, cy, r, 0, Math.PI * 2)
-      ctx.fillStyle = ocean
-      ctx.fill()
-
-      // Globe edge rim
-      ctx.beginPath()
-      ctx.arc(cx, cy, r, 0, Math.PI * 2)
-      ctx.strokeStyle = 'rgba(56,189,248,0.35)'
-      ctx.lineWidth = 1.5
-      ctx.stroke()
-
-      // Orbital rings
-      for (let i = 0; i < 3; i++) {
-        const tilt = (i * Math.PI) / 5 + rot * 0.2 * (i % 2 === 0 ? 1 : -1)
-        ctx.save()
-        ctx.translate(cx, cy)
-        ctx.rotate(tilt)
-        ctx.scale(1, 0.28 + i * 0.08)
+      // Flowing streams behind globe
+      STREAMS.forEach(s => {
+        const phase = s.phase + t * s.speed
         ctx.beginPath()
-        ctx.arc(0, 0, r * (1.12 + i * 0.13), 0, Math.PI * 2)
-        ctx.strokeStyle = `rgba(56,189,248,${0.12 - i * 0.03})`
-        ctx.lineWidth = 1
+        for (let xi = 0; xi <= W(); xi += 3) {
+          const xf = xi / W()
+          const yi = s.yBase * H() + Math.sin(xf * s.freq * Math.PI * 2 + phase) * s.amp * H()
+          xi === 0 ? ctx.moveTo(xi, yi) : ctx.lineTo(xi, yi)
+        }
+        const [cr, cg, cb] = s.color
+        ctx.strokeStyle = `rgba(${cr},${cg},${cb},${s.alpha})`
+        ctx.lineWidth = s.width
         ctx.stroke()
-        ctx.restore()
-      }
-
-      // Dot grid on sphere (latitude/longitude grid feel)
-      const visible = []
-      dots.forEach(([dx, dy, dz]) => {
-        const rx = dx * Math.cos(rot) - dz * Math.sin(rot)
-        const rz = dx * Math.sin(rot) + dz * Math.cos(rot)
-        if (rz < 0) return
-        const sx = cx + rx * r
-        const sy = cy - dy * r
-        const alpha = rz * 0.7 + 0.15
-        const size = rz * 1.5 + 0.6
-        ctx.beginPath()
-        ctx.arc(sx, sy, size, 0, Math.PI * 2)
-        ctx.fillStyle = `rgba(160,220,255,${alpha.toFixed(2)})`
-        ctx.fill()
-        visible.push({ sx, sy, rz })
       })
 
-      // Lat/lon grid lines on sphere
-      const gridAlpha = 0.12
-      // Latitude lines
+      // Globe atmosphere
+      const atmos = ctx.createRadialGradient(cx, cy, r * 0.8, cx, cy, r * 1.55)
+      atmos.addColorStop(0, 'rgba(56,180,255,0.22)')
+      atmos.addColorStop(0.35,'rgba(56,130,255,0.10)')
+      atmos.addColorStop(1, 'rgba(0,0,0,0)')
+      ctx.beginPath(); ctx.arc(cx, cy, r * 1.55, 0, Math.PI * 2)
+      ctx.fillStyle = atmos; ctx.fill()
+
+      // Globe clip region for inner elements
+      ctx.save()
+      ctx.beginPath(); ctx.arc(cx, cy, r, 0, Math.PI * 2); ctx.clip()
+
+      // Very subtle inner glow on near side
+      const inner = ctx.createRadialGradient(cx - r*0.25, cy - r*0.25, 0, cx, cy, r)
+      inner.addColorStop(0, 'rgba(80,180,255,0.08)')
+      inner.addColorStop(1, 'rgba(0,5,20,0.0)')
+      ctx.fillStyle = inner; ctx.fillRect(cx-r, cy-r, r*2, r*2)
+
+      // Lat/lon grid
+      const gridColor = 'rgba(80,160,255,0.10)'
       for (let lat = -60; lat <= 60; lat += 30) {
-        ctx.beginPath()
-        let started = false
-        for (let lon = -180; lon <= 180; lon += 3) {
-          const xyz = latLonToXYZ(lat, lon, r)
-          const p = project(xyz, rot)
-          if (p.z < 0) { started = false; continue }
-          const sx = cx + p.sx - W()/2, sy = cy + p.sy - H()/2
-          started ? ctx.lineTo(sx, sy) : (ctx.moveTo(sx, sy), started = true)
+        ctx.beginPath(); let s2 = false
+        for (let lon2 = -180; lon2 <= 180; lon2 += 2) {
+          const [x,y,z] = rotateY(latLonToXYZ(lat, lon2, r), rot)
+          if (z < 0) { s2 = false; continue }
+          s2 ? ctx.lineTo(cx+x, cy-y) : (ctx.moveTo(cx+x, cy-y), s2=true)
         }
-        ctx.strokeStyle = `rgba(100,180,255,${gridAlpha})`
-        ctx.lineWidth = 0.5
-        ctx.stroke()
+        ctx.strokeStyle = gridColor; ctx.lineWidth = 0.4; ctx.stroke()
       }
-      // Longitude lines
-      for (let lon = -180; lon < 180; lon += 30) {
-        ctx.beginPath()
-        let started = false
-        for (let lat = -90; lat <= 90; lat += 3) {
-          const xyz = latLonToXYZ(lat, lon, r)
-          const p = project(xyz, rot)
-          if (p.z < 0) { started = false; continue }
-          const sx = cx + p.sx - W()/2, sy = cy + p.sy - H()/2
-          started ? ctx.lineTo(sx, sy) : (ctx.moveTo(sx, sy), started = true)
+      for (let lon2 = -180; lon2 < 180; lon2 += 30) {
+        ctx.beginPath(); let s2 = false
+        for (let lat2 = -80; lat2 <= 80; lat2 += 2) {
+          const [x,y,z] = rotateY(latLonToXYZ(lat2, lon2, r), rot)
+          if (z < 0) { s2 = false; continue }
+          s2 ? ctx.lineTo(cx+x, cy-y) : (ctx.moveTo(cx+x, cy-y), s2=true)
         }
-        ctx.strokeStyle = `rgba(100,180,255,${gridAlpha})`
-        ctx.lineWidth = 0.5
-        ctx.stroke()
+        ctx.strokeStyle = gridColor; ctx.lineWidth = 0.4; ctx.stroke()
       }
 
-      // Continent lines — brighter, thicker
-      CONTINENTS.forEach(pts => {
-        let first = true
-        ctx.beginPath()
-        pts.forEach(([lat, lon]) => {
-          const xyz = latLonToXYZ(lat, lon, r)
-          const p = project(xyz, rot)
-          if (p.z < 0) { first = true; return }
-          if (first) { ctx.moveTo(cx + p.sx - W()/2, cy + p.sy - H()/2); first = false }
-          else ctx.lineTo(cx + p.sx - W()/2, cy + p.sy - H()/2)
-        })
-        ctx.strokeStyle = 'rgba(140,220,255,0.65)'
-        ctx.lineWidth = 1.2
-        ctx.stroke()
+      // Continent dots
+      contDots.forEach(([dx, dy, dz]) => {
+        const [rx, ry, rz] = rotateY([dx*r, dy*r, dz*r], rot)
+        if (rz < 0) return
+        const alpha = rz/r * 0.75 + 0.2
+        const size  = rz/r * 1.8 + 0.5
+        ctx.beginPath(); ctx.arc(cx+rx, cy-ry, size, 0, Math.PI*2)
+        ctx.fillStyle = `rgba(180,230,255,${alpha.toFixed(2)})`
+        ctx.fill()
+      })
+
+      ctx.restore() // end globe clip
+
+      // Globe rim
+      ctx.beginPath(); ctx.arc(cx, cy, r, 0, Math.PI*2)
+      ctx.strokeStyle = 'rgba(80,200,255,0.50)'; ctx.lineWidth = 1.5; ctx.stroke()
+
+      // Orbital rings
+      ;[
+        { tilt: Math.PI/6 + rot*0.15, rx: r*1.18, ry: r*0.32, alpha: 0.25 },
+        { tilt: -Math.PI/8 - rot*0.12, rx: r*1.28, ry: r*0.28, alpha: 0.15 },
+        { tilt: Math.PI/3 + rot*0.08,  rx: r*1.38, ry: r*0.22, alpha: 0.10 },
+      ].forEach(({ tilt, rx: orx, ry: ory, alpha }) => {
+        ctx.save(); ctx.translate(cx, cy); ctx.rotate(tilt)
+        ctx.beginPath(); ctx.ellipse(0, 0, orx, ory, 0, 0, Math.PI*2)
+        ctx.strokeStyle = `rgba(80,190,255,${alpha})`; ctx.lineWidth = 1; ctx.stroke()
+        ctx.restore()
       })
 
       // Hub nodes + connections
-      const hubPts = HUBS.map(([lat, lon]) => {
-        const xyz = latLonToXYZ(lat, lon, r)
-        return project(xyz, rot)
-      })
+      const hubPts = HUBS.map(h => {
+        const [x, y, z] = rotateY(latLonToXYZ(h.lat, h.lon, r), rot)
+        return { x: cx+x, y: cy-y, z, color: h.color }
+      }).filter(p => p.z >= 0)
 
-      // Draw connections between hubs
+      // Connections
       for (let i = 0; i < hubPts.length; i++) {
-        for (let j = i + 1; j < hubPts.length; j++) {
+        for (let j = i+1; j < hubPts.length; j++) {
+          if (Math.random() > 0.25) continue
           const pa = hubPts[i], pb = hubPts[j]
-          if (pa.z < 0 || pb.z < 0) continue
-          if (Math.random() > 0.3) continue
-          ctx.beginPath()
-          ctx.moveTo(pa.sx, pa.sy)
-          // Bezier arc
-          const mx = (pa.sx + pb.sx) / 2
-          const my = (pa.sy + pb.sy) / 2 - r * 0.15
-          ctx.quadraticCurveTo(mx, my, pb.sx, pb.sy)
-          ctx.strokeStyle = `rgba(255,180,50,0.15)`
-          ctx.lineWidth = 0.8
-          ctx.stroke()
+          const mx = (pa.x+pb.x)/2, my = (pa.y+pb.y)/2 - r*0.18
+          ctx.beginPath(); ctx.moveTo(pa.x, pa.y)
+          ctx.quadraticCurveTo(mx, my, pb.x, pb.y)
+          ctx.strokeStyle = 'rgba(255,190,60,0.18)'; ctx.lineWidth = 0.8; ctx.stroke()
         }
       }
 
-      // Hub glowing dots
+      // Hub glow dots
       hubPts.forEach(p => {
-        if (p.z < 0) return
-        const pulse = 0.6 + 0.4 * Math.sin(t * 3 + p.sx)
-        // Outer glow
-        const g = ctx.createRadialGradient(p.sx, p.sy, 0, p.sx, p.sy, 10)
-        g.addColorStop(0, `rgba(255,200,50,${0.8 * pulse})`)
-        g.addColorStop(1, 'rgba(255,200,50,0)')
-        ctx.beginPath()
-        ctx.arc(p.sx, p.sy, 10, 0, Math.PI * 2)
-        ctx.fillStyle = g
-        ctx.fill()
+        const pulse = 0.55 + 0.45 * Math.sin(t*3 + p.x*0.05)
+        const [cr, cg, cb] = p.color
+        // Outer halo
+        const g = ctx.createRadialGradient(p.x, p.y, 0, p.x, p.y, 14)
+        g.addColorStop(0, `rgba(${cr},${cg},${cb},${(0.85*pulse).toFixed(2)})`)
+        g.addColorStop(0.4, `rgba(${cr},${cg},${cb},${(0.25*pulse).toFixed(2)})`)
+        g.addColorStop(1, 'rgba(0,0,0,0)')
+        ctx.beginPath(); ctx.arc(p.x, p.y, 14, 0, Math.PI*2)
+        ctx.fillStyle = g; ctx.fill()
         // Core
-        ctx.beginPath()
-        ctx.arc(p.sx, p.sy, 2.5, 0, Math.PI * 2)
-        ctx.fillStyle = `rgba(255,220,80,${pulse})`
-        ctx.fill()
-      })
-
-      // Wave lines (background)
-      waves.forEach(w => {
-        w.x -= w.speed
-        if (w.x < -0.1) w.x = 1.1
-        const wx = w.x * W()
-        const wy = w.y * H()
-        const [cr, cg, cb] = w.color
-        ctx.beginPath()
-        for (let xi = -50; xi < W() + 50; xi += 4) {
-          const yi = wy + Math.sin((xi / W()) * w.freq * Math.PI * 2 + w.phase + t * 2) * w.amp * H()
-          xi === -50 ? ctx.moveTo(xi, yi) : ctx.lineTo(xi, yi)
-        }
-        ctx.strokeStyle = `rgba(${cr},${cg},${cb},0.07)`
-        ctx.lineWidth = 1
-        ctx.stroke()
+        ctx.beginPath(); ctx.arc(p.x, p.y, 2.8, 0, Math.PI*2)
+        ctx.fillStyle = `rgba(255,255,255,${pulse.toFixed(2)})`; ctx.fill()
       })
 
       animId = requestAnimationFrame(draw)
