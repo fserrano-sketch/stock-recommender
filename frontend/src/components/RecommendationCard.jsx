@@ -24,13 +24,14 @@ function TickerAvatar({ ticker, size = 44 }) {
   if (logoUrl && !logoError) {
     return (
       <div
-        className="shrink-0 rounded-xl overflow-hidden flex items-center justify-center bg-white"
-        style={{ width: size, height: size }}
+        className="shrink-0 rounded-xl overflow-hidden flex items-center justify-center"
+        style={{ width: size, height: size, background: 'rgba(255,255,255,0.07)', border: '1px solid rgba(255,255,255,0.1)' }}
       >
         <img
           src={logoUrl}
           alt={ticker}
-          className="w-full h-full object-contain p-1"
+          className="object-contain"
+          style={{ width: size * 0.72, height: size * 0.72 }}
           onError={() => setLogoError(true)}
         />
       </div>

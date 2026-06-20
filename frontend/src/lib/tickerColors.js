@@ -37,7 +37,7 @@ const TICKER_DOMAINS = {
 }
 
 export function getLogoUrl(ticker) {
-  const domain = TICKER_DOMAINS[ticker?.toUpperCase()]
-  if (!domain) return null
-  return `https://logo.clearbit.com/${domain}`
+  if (!ticker) return null
+  // financialmodelingprep provides free stock logos for major tickers
+  return `https://financialmodelingprep.com/image-stock/${ticker.toUpperCase()}.png`
 }
