@@ -337,13 +337,22 @@ export default function Portfolio() {
     const { tickers: t, weights: w } = parseTextTickers(pasteText)
     if (t.length > 0) {
       setTickers(t)
-      setCurrentWeights(w)
-      if (Object.keys(w).length > 0) setMode('review')
+      // Auto-distribute equal weights if none were parsed
+      const hasWeights = Object.keys(w).length > 0
+      if (hasWeights) {
+        setCurrentWeights(w)
+      } else {
+        const eq = +(100 / t.length).toFixed(2)
+        const autoW = {}
+        t.forEach((tk, i) => { autoW[tk] = i < t.length - 1 ? eq : +(100 - eq * (t.length - 1)).toFixed(2) })
+        setCurrentWeights(autoW)
+      }
+      setMode('review')
       setExtractError('')
       setShowPasteBox(false)
       setPasteText('')
     } else {
-      setExtractError(`No se encontraron tickers válidos. Asegúrate de pegar los símbolos bursátiles (ej: AAPL, MSFT, NVDA).`)
+      setExtractError('No se encontraron tickers válidos. Pega los símbolos bursátiles (ej: AAPL, MSFT, NVDA).')
     }
   }
 

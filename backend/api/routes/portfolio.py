@@ -249,9 +249,14 @@ def get_portfolio_strategies(
     import anthropic, os, json
     from services.data_fetcher import get_stock_data
 
-    # Fetch quick data for each ticker
+    # Auto-distribute equal weights if none provided
+    n = len(req.tickers)
+    equal_weight = round(1.0 / n, 4) if n > 0 else 0
+    effective_weights = req.current_weights or {t: equal_weight for t in req.tickers}
+
+    # Fetch quick data for each ticker (cap at 40 for AI context size)
     portfolio_info = []
-    for ticker in req.tickers[:15]:
+    for ticker in req.tickers[:40]:
         try:
             d = get_stock_data(ticker)
             portfolio_info.append({
@@ -261,7 +266,7 @@ def get_portfolio_strategies(
                 "price": d.get("price"),
                 "change_pct": d.get("price_change_pct"),
                 "pe": d.get("pe_ratio"),
-                "weight": req.current_weights.get(ticker) if req.current_weights else None,
+                "weight": effective_weights.get(ticker, equal_weight),
             })
         except Exception:
             portfolio_info.append({"ticker": ticker, "company": ticker, "sector": "N/A"})
